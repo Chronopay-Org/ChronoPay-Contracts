@@ -40,11 +40,7 @@ fn test_mint_and_redeem() {
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
-    let _slot_id = client.create_time_slot(
-        &String::from_str(&env, "pro"),
-        &1000u64,
-        &2000u64,
-    );
+    let _slot_id = client.create_time_slot(&String::from_str(&env, "pro"), &1000u64, &2000u64);
     let token = client.mint_time_token(&1);
     assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
 

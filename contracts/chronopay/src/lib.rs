@@ -19,7 +19,9 @@ impl ChronoPayContract {
     /// Create a time slot (stub). In full implementation: professional, start_time, end_time.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
         let _ = (professional, start_time, end_time);
-        env.storage().instance().set(&Symbol::new(&env, "slot_seq"), &1u32);
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, "slot_seq"), &1u32);
         1u32
     }
 
@@ -32,14 +34,18 @@ impl ChronoPayContract {
     /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
     pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
         let _ = (token_id, buyer, seller);
-        env.storage().instance().set(&Symbol::new(&env, "owner"), &env.current_contract_address());
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, "owner"), &env.current_contract_address());
         true
     }
 
     /// Redeem time token (stub). In full implementation: token_id, marks as redeemed.
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
         let _ = token_id;
-        env.storage().instance().set(&Symbol::new(&env, "status"), &TimeTokenStatus::Redeemed);
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, "status"), &TimeTokenStatus::Redeemed);
         true
     }
 
