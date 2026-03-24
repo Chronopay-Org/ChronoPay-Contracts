@@ -37,7 +37,11 @@ impl ChronoPayContract {
 
     /// Set the fee in basis points (BPS). 10000 BPS = 100%.
     pub fn set_fee_bps(env: Env, fee_bps: u32) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
 
         if fee_bps > 10000 {
@@ -54,7 +58,10 @@ impl ChronoPayContract {
 
     /// Get the current admin address.
     pub fn get_admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).expect("not initialized")
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized")
     }
 
     /// Create a time slot with an auto-incrementing slot id.
@@ -68,13 +75,9 @@ impl ChronoPayContract {
             .get(&DataKey::SlotSeq)
             .unwrap_or(0u32);
 
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
