@@ -1,10 +1,11 @@
 {
   "generators": {
-    "address": 1,
+    "address": 2,
     "nonce": 0,
     "mux_id": 0
   },
   "auth": [
+    [],
     [],
     [],
     [],
@@ -53,7 +54,7 @@
                       "symbol": "professional"
                     },
                     "val": {
-                      "string": "professional_alice"
+                      "string": "pro"
                     }
                   },
                   {
@@ -62,58 +63,6 @@
                     },
                     "val": {
                       "u64": "1000"
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 17280
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "key": {
-                "vec": [
-                  {
-                    "symbol": "SlotMeta"
-                  },
-                  {
-                    "u32": 2
-                  }
-                ]
-              },
-              "durability": "persistent",
-              "val": {
-                "map": [
-                  {
-                    "key": {
-                      "symbol": "end_time"
-                    },
-                    "val": {
-                      "u64": "4000"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "professional"
-                    },
-                    "val": {
-                      "string": "professional_alice"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "start_time"
-                    },
-                    "val": {
-                      "u64": "3000"
                     }
                   }
                 ]
@@ -148,53 +97,9 @@
                     "key": {
                       "symbol": "owner"
                     },
-                    "val": "void"
-                  },
-                  {
-                    "key": {
-                      "symbol": "status"
-                    },
                     "val": {
-                      "vec": [
-                        {
-                          "symbol": "Available"
-                        }
-                      ]
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                     }
-                  }
-                ]
-              }
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 17280
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "key": {
-                "vec": [
-                  {
-                    "symbol": "SlotState"
-                  },
-                  {
-                    "u32": 2
-                  }
-                ]
-              },
-              "durability": "persistent",
-              "val": {
-                "map": [
-                  {
-                    "key": {
-                      "symbol": "owner"
-                    },
-                    "val": "void"
                   },
                   {
                     "key": {
@@ -203,7 +108,7 @@
                     "val": {
                       "vec": [
                         {
-                          "symbol": "Available"
+                          "symbol": "Sold"
                         }
                       ]
                     }
@@ -240,7 +145,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 2
+                        "u32": 1
                       }
                     }
                   ]
