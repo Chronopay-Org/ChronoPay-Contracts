@@ -12,11 +12,7 @@ fn test_hello() {
     let words = client.hello(&String::from_str(&env, "Dev"));
     assert_eq!(
         words,
-        vec![
-            &env,
-            String::from_str(&env, "ChronoPay"),
-            String::from_str(&env, "Dev"),
-        ]
+        vec![&env, String::from_str(&env, "ChronoPay"), String::from_str(&env, "Dev"),]
     );
 }
 
@@ -26,21 +22,12 @@ fn test_create_time_slot_auto_increments() {
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
-    let slot_id_1 = client.create_time_slot(
-        &String::from_str(&env, "professional_alice"),
-        &1000u64,
-        &2000u64,
-    );
-    let slot_id_2 = client.create_time_slot(
-        &String::from_str(&env, "professional_alice"),
-        &3000u64,
-        &4000u64,
-    );
-    let slot_id_3 = client.create_time_slot(
-        &String::from_str(&env, "professional_alice"),
-        &5000u64,
-        &6000u64,
-    );
+    let slot_id_1 =
+        client.create_time_slot(&String::from_str(&env, "professional_alice"), &1000u64, &2000u64);
+    let slot_id_2 =
+        client.create_time_slot(&String::from_str(&env, "professional_alice"), &3000u64, &4000u64);
+    let slot_id_3 =
+        client.create_time_slot(&String::from_str(&env, "professional_alice"), &5000u64, &6000u64);
 
     assert_eq!(slot_id_1, 1);
     assert_eq!(slot_id_2, 2);
@@ -55,11 +42,7 @@ fn test_create_time_slot_invalid_time_range() {
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
     // end_time < start_time should panic
-    client.create_time_slot(
-        &String::from_str(&env, "professional_alice"),
-        &2000u64,
-        &1000u64,
-    );
+    client.create_time_slot(&String::from_str(&env, "professional_alice"), &2000u64, &1000u64);
 }
 
 #[test]
@@ -70,11 +53,7 @@ fn test_create_time_slot_zero_duration() {
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
     // end_time == start_time should panic
-    client.create_time_slot(
-        &String::from_str(&env, "professional_alice"),
-        &1000u64,
-        &1000u64,
-    );
+    client.create_time_slot(&String::from_str(&env, "professional_alice"), &1000u64, &1000u64);
 }
 
 #[test]

@@ -32,19 +32,9 @@ impl ChronoPayContract {
         }
         let _ = (professional, start_time, end_time);
 
-        let current_seq: u32 = env
-            .storage()
-            .instance()
-            .get(&DataKey::SlotSeq)
-            .unwrap_or(0u32);
-
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
-
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        let current_seq: u32 = env.storage().instance().get(&DataKey::SlotSeq).unwrap_or(0u32);
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
@@ -58,18 +48,14 @@ impl ChronoPayContract {
     /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
     pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
         let _ = (token_id, buyer, seller);
-        env.storage()
-            .instance()
-            .set(&DataKey::Owner, &env.current_contract_address());
+        env.storage().instance().set(&DataKey::Owner, &env.current_contract_address());
         true
     }
 
     /// Redeem time token (stub). In full implementation: token_id, marks as redeemed.
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
         let _ = token_id;
-        env.storage()
-            .instance()
-            .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
+        env.storage().instance().set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
     }
 

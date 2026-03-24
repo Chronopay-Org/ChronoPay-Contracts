@@ -1,0 +1,3 @@
+# Consistent formatting across Rust versions
+edition = "2021"
+use_small_heuristics = "Max"
