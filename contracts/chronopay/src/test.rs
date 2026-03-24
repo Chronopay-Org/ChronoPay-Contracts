@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{vec, Address, Env, String};
+use soroban_sdk::testutils::Address as _;
 
 #[test]
 fn test_hello() {
@@ -59,4 +60,64 @@ fn test_mint_and_redeem() {
 
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
+}
+
+#[test]
+fn test_fee_configuration() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(client.get_admin(), admin);
+    assert_eq!(client.get_fee_bps(), 0);
+
+    env.mock_all_auths();
+    client.set_fee_bps(&500); // 5%
+    assert_eq!(client.get_fee_bps(), 500);
+
+    client.set_fee_bps(&10000); // 100%
+    assert_eq!(client.get_fee_bps(), 10000);
+}
+
+#[test]
+#[should_panic(expected = "already initialized")]
+fn test_initialize_twice() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    client.initialize(&admin);
+}
+
+#[test]
+#[should_panic]
+fn test_unauthorized_fee_update() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    // No mock_all_auths(), so this should fail because it's not the admin
+    client.set_fee_bps(&500);
+}
+
+#[test]
+#[should_panic(expected = "fee_bps must be between 0 and 10000")]
+fn test_invalid_fee_bps() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    env.mock_all_auths();
+    client.set_fee_bps(&10001);
 }
