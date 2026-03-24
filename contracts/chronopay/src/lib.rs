@@ -11,18 +11,39 @@ pub enum TimeTokenStatus {
     Redeemed,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    SlotSeq,
+    Owner,
+    Status,
+}
+
 #[contract]
 pub struct ChronoPayContract;
 
 #[contractimpl]
 impl ChronoPayContract {
-    /// Create a time slot (stub). In full implementation: professional, start_time, end_time.
+    /// Create a time slot with an auto-incrementing slot id.
+    /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
         let _ = (professional, start_time, end_time);
+
+        let current_seq: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::SlotSeq)
+            .unwrap_or(0u32);
+
+        let next_seq = current_seq
+            .checked_add(1)
+            .expect("slot id overflow");
+
         env.storage()
             .instance()
-            .set(&Symbol::new(&env, "slot_seq"), &1u32);
-        1u32
+            .set(&DataKey::SlotSeq, &next_seq);
+
+        next_seq
     }
 
     /// Mint a time token for a slot (stub).
@@ -36,7 +57,7 @@ impl ChronoPayContract {
         let _ = (token_id, buyer, seller);
         env.storage()
             .instance()
-            .set(&Symbol::new(&env, "owner"), &env.current_contract_address());
+            .set(&DataKey::Owner, &env.current_contract_address());
         true
     }
 
@@ -45,7 +66,7 @@ impl ChronoPayContract {
         let _ = token_id;
         env.storage()
             .instance()
-            .set(&Symbol::new(&env, "status"), &TimeTokenStatus::Redeemed);
+            .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
     }
 

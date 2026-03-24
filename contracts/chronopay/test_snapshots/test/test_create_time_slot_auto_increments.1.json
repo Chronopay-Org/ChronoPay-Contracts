@@ -44,23 +44,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
+                        "u32": 3
                       }
                     }
                   ]
