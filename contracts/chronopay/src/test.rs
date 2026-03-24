@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{testutils::Events, vec, Env, String};
 
 #[test]
 fn test_hello() {
