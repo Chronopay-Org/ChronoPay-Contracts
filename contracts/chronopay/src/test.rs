@@ -64,4 +64,3 @@ fn test_mint_and_redeem() {
     let events = env.events().all();
     assert!(events.len() > 0, "Expected redemption event to be emitted");
 }
-
