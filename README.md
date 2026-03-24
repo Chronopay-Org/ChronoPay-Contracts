@@ -10,6 +10,31 @@ Soroban smart contracts for **ChronoPay** — time tokenization and scheduling o
   - `buy_time_token(token_id, buyer, seller)`
   - `redeem_time_token(token_id)`
 
+## Integration test harness
+
+The contract test module includes an integration-style harness that centralizes
+environment setup and client calls across tests.
+
+- Harness location: `contracts/chronopay/src/test.rs`
+- Scope: lifecycle flow (`create -> mint -> buy -> redeem`) plus invalid inputs
+- Goal: deterministic tests that are easy to extend and review
+
+### Failure-mode handling covered by tests
+
+- Empty `professional` is rejected.
+- Invalid time ranges (`start_time >= end_time`) are rejected.
+- `slot_id = 0` for minting is rejected.
+- Unsupported token IDs are rejected for buy/redeem.
+- Self-trades (`buyer == seller`) are rejected.
+- Redeem is only valid from `Sold` state and replay attempts are rejected.
+
+### Security assumptions (current architecture)
+
+- This contract stores a simplified global owner/status for early development.
+- Input validation is fail-fast using explicit panics for invalid state changes.
+- Authorization and per-token ownership are intentionally minimal in this phase
+  and should be expanded before production deployment.
+
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/) (stable)
@@ -60,8 +85,16 @@ chronopay-contracts/
 On every push and pull request to `main`, GitHub Actions runs:
 
 - **Format**: `cargo fmt --all -- --check`
-- **Build**: `cargo build`
+- **Clippy**: `cargo clippy --all-targets -- -D warnings`
 - **Tests**: `cargo test`
+
+## Acceptance criteria for this increment
+
+- Integration harness exists and is used by contract tests.
+- Happy path and failure paths are both covered.
+- `cargo fmt --all -- --check` passes.
+- `cargo clippy --all-targets -- -D warnings` passes.
+- `cargo test` passes.
 
 ## License
 

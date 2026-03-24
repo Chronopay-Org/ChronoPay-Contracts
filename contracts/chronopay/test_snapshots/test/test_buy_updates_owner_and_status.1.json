@@ -8,8 +8,6 @@
     [],
     [],
     [],
-    [],
-    [],
     []
   ],
   "ledger": {
@@ -53,18 +51,6 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotSeq"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
                             "symbol": "Status"
                           }
                         ]
@@ -72,7 +58,7 @@
                       "val": {
                         "vec": [
                           {
-                            "symbol": "Redeemed"
+                            "symbol": "Sold"
                           }
                         ]
                       }
