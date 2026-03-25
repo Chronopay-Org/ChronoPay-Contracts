@@ -1,7 +1,7 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -17,6 +17,7 @@ pub enum DataKey {
     SlotSeq,
     Owner,
     Status,
+    Admin,
 }
 
 #[contract]
@@ -24,6 +25,14 @@ pub struct ChronoPayContract;
 
 #[contractimpl]
 impl ChronoPayContract {
+    /// Initialize the contract with an admin.
+    /// This should be called immediately after deployment.
+    pub fn init(env: Env, admin: Address) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+    }
     /// Create a time slot with an auto-incrementing slot id.
     /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {

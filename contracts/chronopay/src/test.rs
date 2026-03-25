@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{vec, Address, Env, String};
 
 #[test]
 fn test_hello() {
@@ -59,4 +59,30 @@ fn test_mint_and_redeem() {
 
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
+}
+
+#[test]
+fn test_init() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    
+    // Test successful initialization
+    client.init(&admin);
+}
+
+#[test]
+#[should_panic(expected = "already initialized")]
+fn test_double_init() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    
+    // First init should succeed
+    client.init(&admin);
+    
+    // Second init should panic
+    client.init(&admin);
 }
