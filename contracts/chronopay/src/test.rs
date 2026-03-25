@@ -21,6 +21,41 @@ fn test_hello() {
 }
 
 #[test]
+fn test_version_default_before_any_call() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let v = client.get_contract_version();
+    assert_eq!(v, 0);
+}
+
+#[test]
+fn test_version_initialized_on_first_call() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let _ = client.hello(&String::from_str(&env, "X"));
+    let v = client.get_contract_version();
+    assert_eq!(v, 1);
+}
+
+#[test]
+fn test_version_stable_across_calls() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let _ = client.create_time_slot(&String::from_str(&env, "pro"), &1u64, &2u64);
+    let _ = client.hello(&String::from_str(&env, "Y"));
+    let _ = client.mint_time_token(&1u32);
+
+    let v = client.get_contract_version();
+    assert_eq!(v, 1);
+}
+
+#[test]
 fn test_create_time_slot_auto_increments() {
     let env = Env::default();
     let contract_id = env.register(ChronoPayContract, ());
