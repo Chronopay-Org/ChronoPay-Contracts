@@ -60,3 +60,31 @@ fn test_mint_and_redeem() {
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
+
+#[test]
+fn test_buy_time_token_emits_purchase_event() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let slot_id = client.create_time_slot(&String::from_str(&env, "pro"), &1000u64, &2000u64);
+    let token = client.mint_time_token(&slot_id);
+
+    let buyer = String::from_str(&env, "buyer_addr");
+    let seller = String::from_str(&env, "seller_addr");
+
+    let result = client.buy_time_token(&token, &buyer, &seller);
+    assert!(result);
+
+    let events = env.events().all();
+    assert!(!events.is_empty(), "Expected purchase event to be emitted");
+
+    let last_event = events.last().unwrap();
+    let (_, topics, data): (_, (Symbol, Symbol), PurchaseEvent) = last_event;
+
+    assert_eq!(topics.0, Symbol::new(&env, "purchase"));
+    assert_eq!(topics.1, token);
+    assert_eq!(data.token_id, token);
+    assert_eq!(data.buyer, buyer);
+    assert_eq!(data.seller, seller);
+}
