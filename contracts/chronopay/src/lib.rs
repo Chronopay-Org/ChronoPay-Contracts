@@ -47,7 +47,17 @@ impl ChronoPayContract {
         start_time: u64,
         end_time: u64,
     ) -> Result<u32, Error> {
-        let _ = (professional, start_time, end_time);
+        let current_time = env.ledger().timestamp();
+
+        if start_time <= current_time {
+            return Err(Error::StartTimeInPast);
+        }
+
+        if end_time <= start_time {
+            return Err(Error::InvalidTimeRange);
+        }
+
+        let _ = professional;
 
         let current_seq: u32 = env
             .storage()
