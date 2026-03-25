@@ -2,7 +2,7 @@
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, vec, Env, String, Symbol, Vec,
+    contract, contracterror, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec,
 };
 
 #[contracttype]
@@ -17,7 +17,7 @@ pub enum TimeTokenStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
     SlotSeq,
-    Owner,
+    Owner(Symbol),
     Status,
 }
 
@@ -82,19 +82,27 @@ impl ChronoPayContract {
     pub fn buy_time_token(
         env: Env,
         token_id: Symbol,
-        buyer: String,
-        seller: String,
+        buyer: Address,
+        seller: Address,
     ) -> Result<bool, Error> {
-        let _ = (token_id, buyer, seller);
+        let _ = seller;
+
         env.storage()
             .instance()
-            .set(&DataKey::Owner, &env.current_contract_address());
+            .set(&DataKey::Owner(token_id.clone()), &buyer);
         Ok(true)
     }
 
-    /// Redeem time token (stub). In full implementation: token_id, marks as redeemed.
+    /// Redeem time token. Verifies ownership via require_auth and marks as redeemed.
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> Result<bool, Error> {
-        let _ = token_id;
+        let owner: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Owner(token_id.clone()))
+            .ok_or(Error::TokenNotFound)?;
+
+        owner.require_auth();
+
         env.storage()
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);

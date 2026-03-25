@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{testutils::Address as _, vec, Env, String};
 
 #[test]
 fn test_hello() {
@@ -51,6 +51,7 @@ fn test_create_time_slot_auto_increments() {
 #[test]
 fn test_mint_and_redeem() {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
@@ -63,6 +64,9 @@ fn test_mint_and_redeem() {
     let token = client.mint_time_token(&slot_id);
     assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
 
+    let owner = Address::generate(&env);
+    let seller = Address::generate(&env);
+    client.buy_time_token(&token, &owner, &seller);
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
@@ -110,4 +114,37 @@ fn test_create_time_slot_valid() {
         &(current_time + 2000),
     );
     assert_eq!(result, 1);
+}
+
+#[test]
+fn test_redeem_by_owner_succeeds() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    let slot_id = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
+    );
+    let token = client.mint_time_token(&slot_id);
+    assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
+
+    let owner = Address::generate(&env);
+    let seller = Address::generate(&env);
+    client.buy_time_token(&token, &owner, &seller);
+    client.redeem_time_token(&token);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_redeem_nonexistent_token_fails() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let fake_token = soroban_sdk::Symbol::new(&env, "FAKE");
+    client.redeem_time_token(&fake_token);
 }
