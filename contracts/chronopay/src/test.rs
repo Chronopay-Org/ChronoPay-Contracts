@@ -2,6 +2,7 @@
 
 use super::*;
 use soroban_sdk::{vec, Address, Env, String};
+use soroban_sdk::testutils::Address as _;
 
 #[test]
 fn test_hello() {
