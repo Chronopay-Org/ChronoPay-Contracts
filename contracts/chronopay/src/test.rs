@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{vec, Address, Env, String};
 
 #[test]
 fn test_hello() {
@@ -48,6 +48,54 @@ fn test_create_time_slot_auto_increments() {
 }
 
 #[test]
+fn test_create_time_slot_rejects_zero_length_range() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let result = client.try_create_time_slot(
+        &String::from_str(&env, "professional_alice"),
+        &1000u64,
+        &1000u64,
+    );
+
+    assert_eq!(result, Err(Ok(ContractError::InvalidTimeRange)));
+}
+
+#[test]
+fn test_create_time_slot_rejects_inverted_range() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let result = client.try_create_time_slot(
+        &String::from_str(&env, "professional_alice"),
+        &2000u64,
+        &1000u64,
+    );
+
+    assert_eq!(result, Err(Ok(ContractError::InvalidTimeRange)));
+}
+
+#[test]
+fn test_create_time_slot_rejects_slot_sequence_overflow() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    env.as_contract(&contract_id, || {
+        env.storage().instance().set(&DataKey::SlotSeq, &u32::MAX);
+    });
+
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let result = client.try_create_time_slot(
+        &String::from_str(&env, "professional_alice"),
+        &1000u64,
+        &2000u64,
+    );
+
+    assert_eq!(result, Err(Ok(ContractError::SlotIdOverflow)));
+}
+
+#[test]
 fn test_mint_and_redeem() {
     let env = Env::default();
     let contract_id = env.register(ChronoPayContract, ());
@@ -59,4 +107,25 @@ fn test_mint_and_redeem() {
 
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
+}
+
+#[test]
+fn test_buy_time_token_sets_owner_to_contract_address() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let bought = client.buy_time_token(
+        &soroban_sdk::Symbol::new(&env, "TIME_TOKEN"),
+        &String::from_str(&env, "buyer"),
+        &String::from_str(&env, "seller"),
+    );
+
+    assert!(bought);
+    let stored_owner: Address = env
+        .as_contract(&contract_id, || {
+            env.storage().instance().get(&DataKey::Owner)
+        })
+        .unwrap();
+    assert_eq!(stored_owner, contract_id);
 }

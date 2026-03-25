@@ -1,7 +1,9 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, vec, Env, String, Symbol, Vec,
+};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,6 +21,14 @@ pub enum DataKey {
     Status,
 }
 
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum ContractError {
+    InvalidTimeRange = 1,
+    SlotIdOverflow = 2,
+}
+
 #[contract]
 pub struct ChronoPayContract;
 
@@ -26,8 +36,24 @@ pub struct ChronoPayContract;
 impl ChronoPayContract {
     /// Create a time slot with an auto-incrementing slot id.
     /// Returns the newly assigned slot id.
-    pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
-        let _ = (professional, start_time, end_time);
+    ///
+    /// Failure modes:
+    /// - `InvalidTimeRange` when `end_time <= start_time`
+    /// - `SlotIdOverflow` when the slot sequence reaches `u32::MAX`
+    pub fn create_time_slot(
+        env: Env,
+        professional: String,
+        start_time: u64,
+        end_time: u64,
+    ) -> Result<u32, ContractError> {
+        let _ = professional;
+
+        // Guard the subtraction explicitly so invalid or inverted timestamps
+        // fail deterministically in both debug and release builds.
+        let _duration = end_time
+            .checked_sub(start_time)
+            .filter(|duration| *duration > 0)
+            .ok_or(ContractError::InvalidTimeRange)?;
 
         let current_seq: u32 = env
             .storage()
@@ -37,13 +63,11 @@ impl ChronoPayContract {
 
         let next_seq = current_seq
             .checked_add(1)
-            .expect("slot id overflow");
+            .ok_or(ContractError::SlotIdOverflow)?;
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
-        next_seq
+        Ok(next_seq)
     }
 
     /// Mint a time token for a slot (stub).
