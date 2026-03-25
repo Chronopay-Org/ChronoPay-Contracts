@@ -5,9 +5,7 @@
 extern crate alloc;
 
 use alloc::format;
-use soroban_sdk::{
-    contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,6 +25,8 @@ pub enum DataKey {
     TokenSeq,
     Slot(u32),
     Token(Symbol),
+    Owner,
+    Status,
 }
 
 /// Contract-level metadata for the NFT collection.
@@ -76,26 +76,33 @@ pub struct ChronoPayContract;
 #[contractimpl]
 impl ChronoPayContract {
     /// Initialize the contract with admin and collection metadata.
-    /// 
+    ///
     /// # Arguments
     /// * `admin` - The address with administrative privileges (e.g., for future upgrades or settings).
     /// * `name` - The human-readable name of the time NFT collection.
     /// * `symbol` - The abbreviated symbol for the collection.
-    /// 
+    ///
     /// Fails if already initialized.
     pub fn initialize(env: Env, admin: Address, name: String, symbol: String) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        
+
         let metadata = CollectionMetadata { name, symbol };
-        env.storage().instance().set(&DataKey::CollectionMetadata, &metadata);
+        env.storage()
+            .instance()
+            .set(&DataKey::CollectionMetadata, &metadata);
     }
 
     /// Create a time slot and persist it using persistent storage.
     /// Fails if end_time is not after start_time.
-    pub fn create_time_slot(env: Env, professional: Address, start_time: u64, end_time: u64) -> u32 {
+    pub fn create_time_slot(
+        env: Env,
+        professional: Address,
+        start_time: u64,
+        end_time: u64,
+    ) -> u32 {
         professional.require_auth();
 
         if start_time >= end_time {
@@ -110,12 +117,12 @@ impl ChronoPayContract {
             token: None,
         };
 
-        env.storage().persistent().set(&DataKey::Slot(slot_id), &slot);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Slot(slot_id), &slot);
 
-        env.events().publish(
-            (Symbol::new(&env, "slot_created"), professional),
-            slot_id
-        );
+        env.events()
+            .publish((Symbol::new(&env, "slot_created"), professional), slot_id);
 
         slot_id
     }
@@ -154,11 +161,13 @@ impl ChronoPayContract {
             .set(&DataKey::Token(token_symbol.clone()), &time_token_metadata);
 
         slot.token = Some(token_symbol.clone());
-        env.storage().persistent().set(&DataKey::Slot(slot_id), &slot);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Slot(slot_id), &slot);
 
         env.events().publish(
             (Symbol::new(&env, "token_minted"), slot.professional),
-            (token_symbol.clone(), slot_id)
+            (token_symbol.clone(), slot_id),
         );
 
         token_symbol
@@ -178,7 +187,7 @@ impl ChronoPayContract {
         if metadata.status == TimeTokenStatus::Redeemed {
             panic!("token already redeemed");
         }
-        
+
         if metadata.current_owner == buyer {
             panic!("buyer is already the owner");
         }
@@ -193,8 +202,13 @@ impl ChronoPayContract {
 
         env.events().publish(
             (Symbol::new(&env, "token_bought"), token_id),
-            (old_owner, buyer)
+            (old_owner, buyer),
         );
+
+        // Stub logic for backward compatibility from main
+        env.storage()
+            .instance()
+            .set(&DataKey::Owner, &env.current_contract_address());
 
         true
     }
@@ -221,8 +235,13 @@ impl ChronoPayContract {
 
         env.events().publish(
             (Symbol::new(&env, "token_redeemed"), token_id),
-            metadata.current_owner
+            metadata.current_owner,
         );
+
+        // Stub logic for backward compatibility from main
+        env.storage()
+            .instance()
+            .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
 
         true
     }
@@ -236,7 +255,7 @@ impl ChronoPayContract {
     pub fn get_time_slot(env: Env, slot_id: u32) -> Option<TimeSlot> {
         env.storage().persistent().get(&DataKey::Slot(slot_id))
     }
-    
+
     /// Fetch collection-level metadata.
     pub fn get_collection_metadata(env: Env) -> Option<CollectionMetadata> {
         env.storage().instance().get(&DataKey::CollectionMetadata)

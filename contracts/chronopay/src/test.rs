@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Address, Env, String, Symbol};
 use soroban_sdk::testutils::Address as _;
+use soroban_sdk::{vec, Address, Env, String, Symbol};
 
 fn setup() -> Env {
     Env::default()
@@ -34,10 +34,12 @@ fn test_initialize_and_metadata() {
     let admin = Address::generate(&env);
     let name = String::from_str(&env, "ChronoPay Time Tokens");
     let symbol = String::from_str(&env, "TIME");
-    
+
     client.initialize(&admin, &name, &symbol);
-    
-    let metadata = client.get_collection_metadata().expect("metadata should exist");
+
+    let metadata = client
+        .get_collection_metadata()
+        .expect("metadata should exist");
     assert_eq!(metadata.name, name);
     assert_eq!(metadata.symbol, symbol);
 }
@@ -52,7 +54,7 @@ fn test_initialize_twice_panics() {
     let admin = Address::generate(&env);
     let name = String::from_str(&env, "Name");
     let symbol = String::from_str(&env, "SYM");
-    
+
     client.initialize(&admin, &name, &symbol);
     client.initialize(&admin, &name, &symbol);
 }
@@ -65,11 +67,7 @@ fn test_create_time_slot_persists() {
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
     let professional = Address::generate(&env);
-    let slot_id = client.create_time_slot(
-        &professional,
-        &1_000u64,
-        &2_000u64,
-    );
+    let slot_id = client.create_time_slot(&professional, &1_000u64, &2_000u64);
     assert_eq!(slot_id, 1);
 
     let slot = client.get_time_slot(&slot_id).expect("slot should exist");
@@ -77,6 +75,24 @@ fn test_create_time_slot_persists() {
     assert_eq!(slot.start_time, 1_000u64);
     assert_eq!(slot.end_time, 2_000u64);
     assert!(slot.token.is_none());
+}
+
+#[test]
+fn test_create_time_slot_auto_increments() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let prof = Address::generate(&env);
+
+    let slot_id_1 = client.create_time_slot(&prof, &1000u64, &2000u64);
+    let slot_id_2 = client.create_time_slot(&prof, &3000u64, &4000u64);
+    let slot_id_3 = client.create_time_slot(&prof, &5000u64, &6000u64);
+
+    assert_eq!(slot_id_1, 1);
+    assert_eq!(slot_id_2, 2);
+    assert_eq!(slot_id_3, 3);
 }
 
 #[test]
@@ -99,13 +115,13 @@ fn test_mint_buy_redeem_lifecycle() {
 
     let professional = Address::generate(&env);
     let slot_id = client.create_time_slot(&professional, &100u64, &200u64);
-    
+
     let token_metadata = TokenMetadata {
         name: String::from_str(&env, "Consultation #1"),
         description: String::from_str(&env, "Expert consultation"),
         image_uri: String::from_str(&env, "ipfs://hash"),
     };
-    
+
     let token = client.mint_time_token(&slot_id, &token_metadata);
     assert_eq!(token, Symbol::new(&env, "TIME_1"));
 
@@ -122,7 +138,7 @@ fn test_mint_buy_redeem_lifecycle() {
     let buyer = Address::generate(&env);
     let purchased = client.buy_time_token(&token, &buyer);
     assert!(purchased);
-    
+
     let metadata_after_buy = client.get_token_metadata(&token).unwrap();
     assert_eq!(metadata_after_buy.status, TimeTokenStatus::Sold);
     assert_eq!(metadata_after_buy.current_owner, buyer);
@@ -144,13 +160,13 @@ fn test_mint_twice_panics() {
 
     let professional = Address::generate(&env);
     let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
-    
+
     let token_metadata = TokenMetadata {
         name: String::from_str(&env, "T"),
         description: String::from_str(&env, "D"),
         image_uri: String::from_str(&env, "I"),
     };
-    
+
     let _ = client.mint_time_token(&slot_id, &token_metadata);
     let _ = client.mint_time_token(&slot_id, &token_metadata);
 }
@@ -165,13 +181,13 @@ fn test_buy_redeemed_panics() {
 
     let professional = Address::generate(&env);
     let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
-    
+
     let token_metadata = TokenMetadata {
         name: String::from_str(&env, "T"),
         description: String::from_str(&env, "D"),
         image_uri: String::from_str(&env, "I"),
     };
-    
+
     let token = client.mint_time_token(&slot_id, &token_metadata);
     let buyer = Address::generate(&env);
     let _ = client.buy_time_token(&token, &buyer);
@@ -192,13 +208,13 @@ fn test_redeem_twice_panics() {
 
     let professional = Address::generate(&env);
     let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
-    
+
     let token_metadata = TokenMetadata {
         name: String::from_str(&env, "T"),
         description: String::from_str(&env, "D"),
         image_uri: String::from_str(&env, "I"),
     };
-    
+
     let token = client.mint_time_token(&slot_id, &token_metadata);
     let _ = client.redeem_time_token(&token);
     let _ = client.redeem_time_token(&token);
@@ -214,13 +230,13 @@ fn test_buy_requires_distinct_parties() {
 
     let professional = Address::generate(&env);
     let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
-    
+
     let token_metadata = TokenMetadata {
         name: String::from_str(&env, "T"),
         description: String::from_str(&env, "D"),
         image_uri: String::from_str(&env, "I"),
     };
-    
+
     let token = client.mint_time_token(&slot_id, &token_metadata);
     let _ = client.buy_time_token(&token, &professional);
 }

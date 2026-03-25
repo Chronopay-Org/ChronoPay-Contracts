@@ -37,7 +37,11 @@
                   "storage": [
                     {
                       "key": {
-                        "symbol": "slot_seq"
+                        "vec": [
+                          {
+                            "symbol": "SlotSeq"
+                          }
+                        ]
                       },
                       "val": {
                         "u32": 1
@@ -45,7 +49,11 @@
                     },
                     {
                       "key": {
-                        "symbol": "status"
+                        "vec": [
+                          {
+                            "symbol": "Status"
+                          }
+                        ]
                       },
                       "val": {
                         "vec": [
