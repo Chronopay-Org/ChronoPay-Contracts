@@ -148,3 +148,26 @@ fn test_redeem_nonexistent_token_fails() {
     let fake_token = soroban_sdk::Symbol::new(&env, "FAKE");
     client.redeem_time_token(&fake_token);
 }
+
+#[test]
+#[should_panic(expected = "Error(Contract, #4)")]
+fn test_redeem_after_redeem_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    let slot_id = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
+    );
+    let token = client.mint_time_token(&slot_id);
+
+    let owner = Address::generate(&env);
+    let seller = Address::generate(&env);
+    client.buy_time_token(&token, &owner, &seller);
+    client.redeem_time_token(&token);
+    client.redeem_time_token(&token);
+}

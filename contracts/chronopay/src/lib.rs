@@ -18,7 +18,7 @@ pub enum TimeTokenStatus {
 pub enum DataKey {
     SlotSeq,
     Owner(Symbol),
-    Status,
+    Status(Symbol),
 }
 
 /// Error codes for ChronoPay contract operations
@@ -78,7 +78,7 @@ impl ChronoPayContract {
         Symbol::new(&env, "TIME_TOKEN")
     }
 
-    /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
+    /// Buy / transfer time token. Stores buyer as token owner and sets status to Sold.
     pub fn buy_time_token(
         env: Env,
         token_id: Symbol,
@@ -90,6 +90,9 @@ impl ChronoPayContract {
         env.storage()
             .instance()
             .set(&DataKey::Owner(token_id.clone()), &buyer);
+        env.storage()
+            .instance()
+            .set(&DataKey::Status(token_id.clone()), &TimeTokenStatus::Sold);
         Ok(true)
     }
 
@@ -103,9 +106,19 @@ impl ChronoPayContract {
 
         owner.require_auth();
 
+        let status: TimeTokenStatus = env
+            .storage()
+            .instance()
+            .get(&DataKey::Status(token_id.clone()))
+            .unwrap_or(TimeTokenStatus::Available);
+
+        if status == TimeTokenStatus::Redeemed {
+            return Err(Error::TokenAlreadyRedeemed);
+        }
+
         env.storage()
             .instance()
-            .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
+            .set(&DataKey::Status(token_id), &TimeTokenStatus::Redeemed);
         Ok(true)
     }
 

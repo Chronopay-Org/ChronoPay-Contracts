@@ -86,6 +86,9 @@
                         "vec": [
                           {
                             "symbol": "Status"
+                          },
+                          {
+                            "symbol": "TIME_TOKEN"
                           }
                         ]
                       },
