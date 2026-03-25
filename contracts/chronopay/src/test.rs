@@ -67,7 +67,7 @@ fn test_init() {
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
-    
+
     // Test successful initialization
     client.init(&admin);
 }
@@ -79,10 +79,10 @@ fn test_double_init() {
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
-    
+
     // First init should succeed
     client.init(&admin);
-    
+
     // Second init should panic
     client.init(&admin);
 }

@@ -33,6 +33,7 @@ impl ChronoPayContract {
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
+
     /// Create a time slot with an auto-incrementing slot id.
     /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
