@@ -85,4 +85,4 @@ fn test_double_init() {
 
     // Second init should panic
     client.init(&admin);
-}
+}
