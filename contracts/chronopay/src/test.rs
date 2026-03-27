@@ -78,17 +78,21 @@ fn test_slot_sequence_overflow() {
     );
 }
 #[test]
+#[test]
 fn test_buy_time_token_sets_owner() {
     let env = Env::default();
-    let contract_id = env.register(ChronoPayContract, ());
+    let contract_id = env.register_contract(None, ChronoPayContract);
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
-    let token = soroban_sdk::Symbol::new(&env, "TIME_TOKEN");
+    let user = Address::generate(&env);
 
-    let success = client.buy_time_token(
-        &token,
-        &String::from_str(&env, "buyer"),
-        &String::from_str(&env, "seller"),
-    );
-    assert!(success);
+    client.buy_time_token(&user, &10);
+
+    let owner: Address = env
+        .storage()
+        .instance()
+        .get(&Symbol::short("OWNER"))
+        .unwrap();
+
+    assert_eq!(owner, user);
 }
