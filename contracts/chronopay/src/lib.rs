@@ -1,7 +1,7 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec, Address};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 mod fee;
 
@@ -42,7 +42,11 @@ impl ChronoPayContract {
 
     /// Update the platform fee basis points.
     pub fn update_fee(env: Env, new_bps: u32) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
 
         if new_bps > 10000 {
@@ -61,13 +65,9 @@ impl ChronoPayContract {
             .get(&DataKey::SlotSeq)
             .unwrap_or(0u32);
 
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
@@ -79,18 +79,22 @@ impl ChronoPayContract {
     }
 
     /// Buy / transfer time token (stub). Includes platform fee calculation.
-    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: Address, seller: Address, price: i128) -> i128 {
+    pub fn buy_time_token(
+        env: Env,
+        token_id: Symbol,
+        buyer: Address,
+        seller: Address,
+        price: i128,
+    ) -> i128 {
         buyer.require_auth();
         let _ = (token_id, seller);
 
         let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
         let platform_fee = fee::calculate_fee(price, fee_bps);
-        
-        env.storage()
-            .instance()
-            .set(&DataKey::Owner, &buyer);
-        
-        // In a real implementation, we would transfer 'price - platform_fee' to seller 
+
+        env.storage().instance().set(&DataKey::Owner, &buyer);
+
+        // In a real implementation, we would transfer 'price - platform_fee' to seller
         // and 'platform_fee' to the platform treasury.
         platform_fee
     }

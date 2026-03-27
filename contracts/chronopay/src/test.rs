@@ -15,12 +15,12 @@ fn test_initialize_and_update_fee() {
     // Update fee
     env.mock_all_auths();
     client.update_fee(&500); // 5%
-    
+
     // Check buy_time_token fee calculation
     let buyer = Address::generate(&env);
     let seller = Address::generate(&env);
     let token = Symbol::new(&env, "TEST");
-    
+
     let fee_amount = client.buy_time_token(&token, &buyer, &seller, &10000);
     assert_eq!(fee_amount, 500);
 }
