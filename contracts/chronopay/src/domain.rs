@@ -26,4 +26,6 @@ pub enum DataKey {
     SlotSeq,
     Owner,
     Status,
+    ContractName,
+    TokenSymbol,
 }

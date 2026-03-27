@@ -41,28 +41,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotSeq"
+                            "symbol": "ContractName"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
+                        "string": "ChronoPay"
                       }
                     },
                     {

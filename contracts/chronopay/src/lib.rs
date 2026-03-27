@@ -9,6 +9,9 @@ pub use domain::{DataKey, TimeTokenStatus};
 
 use soroban_sdk::{contract, contractimpl, vec, Env, String, Symbol, Vec};
 
+const CONTRACT_NAME: &str = "ChronoPay";
+const TIME_TOKEN_SYMBOL: &str = "TIME_TOKEN";
+
 #[contract]
 pub struct ChronoPayContract;
 
@@ -35,7 +38,7 @@ impl ChronoPayContract {
     /// Mint a time token for a slot (stub).
     pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
         let _ = slot_id;
-        Symbol::new(&env, "TIME_TOKEN")
+        load_or_init_time_token_symbol(&env)
     }
 
     /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
@@ -58,6 +61,30 @@ impl ChronoPayContract {
 
     /// Hello-style entrypoint for CI and SDK sanity check.
     pub fn hello(env: Env, to: String) -> Vec<String> {
-        vec![&env, String::from_str(&env, "ChronoPay"), to]
+        vec![&env, load_or_init_contract_name(&env), to]
     }
+}
+
+fn load_or_init_contract_name(env: &Env) -> String {
+    let storage = env.storage().instance();
+    if let Some(contract_name) = storage.get::<DataKey, String>(&DataKey::ContractName) {
+        return contract_name;
+    }
+
+    // Cache immutable metadata so repeat calls do not rebuild the same host
+    // string object from a Rust literal.
+    let contract_name = String::from_str(env, CONTRACT_NAME);
+    storage.set(&DataKey::ContractName, &contract_name);
+    contract_name
+}
+
+fn load_or_init_time_token_symbol(env: &Env) -> Symbol {
+    let storage = env.storage().instance();
+    if let Some(token_symbol) = storage.get::<DataKey, Symbol>(&DataKey::TokenSymbol) {
+        return token_symbol;
+    }
+
+    let token_symbol = Symbol::new(env, TIME_TOKEN_SYMBOL);
+    storage.set(&DataKey::TokenSymbol, &token_symbol);
+    token_symbol
 }

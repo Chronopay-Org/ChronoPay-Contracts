@@ -18,6 +18,13 @@ fn test_hello() {
             String::from_str(&env, "Dev"),
         ]
     );
+
+    let cached_name = env.as_contract(&contract_id, || {
+        env.storage()
+            .instance()
+            .get::<DataKey, String>(&DataKey::ContractName)
+    });
+    assert_eq!(cached_name, Some(String::from_str(&env, "ChronoPay")));
 }
 
 #[test]
@@ -57,6 +64,13 @@ fn test_mint_and_redeem() {
     let token = client.mint_time_token(&slot_id);
     assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
 
+    let cached_token_symbol = env.as_contract(&contract_id, || {
+        env.storage()
+            .instance()
+            .get::<DataKey, Symbol>(&DataKey::TokenSymbol)
+    });
+    assert_eq!(cached_token_symbol, Some(Symbol::new(&env, "TIME_TOKEN")));
+
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 
@@ -66,6 +80,50 @@ fn test_mint_and_redeem() {
             .get::<DataKey, TimeTokenStatus>(&DataKey::Status)
     });
     assert_eq!(status, Some(TimeTokenStatus::Redeemed));
+}
+
+#[test]
+fn test_cached_metadata_is_reused_across_calls() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let first_hello = client.hello(&String::from_str(&env, "Alice"));
+    let second_hello = client.hello(&String::from_str(&env, "Bob"));
+    let first_token = client.mint_time_token(&1u32);
+    let second_token = client.mint_time_token(&2u32);
+
+    assert_eq!(
+        first_hello,
+        vec![
+            &env,
+            String::from_str(&env, "ChronoPay"),
+            String::from_str(&env, "Alice"),
+        ]
+    );
+    assert_eq!(
+        second_hello,
+        vec![
+            &env,
+            String::from_str(&env, "ChronoPay"),
+            String::from_str(&env, "Bob"),
+        ]
+    );
+    assert_eq!(first_token, Symbol::new(&env, "TIME_TOKEN"));
+    assert_eq!(second_token, Symbol::new(&env, "TIME_TOKEN"));
+
+    let (cached_name, cached_symbol) = env.as_contract(&contract_id, || {
+        (
+            env.storage()
+                .instance()
+                .get::<DataKey, String>(&DataKey::ContractName),
+            env.storage()
+                .instance()
+                .get::<DataKey, Symbol>(&DataKey::TokenSymbol),
+        )
+    });
+    assert_eq!(cached_name, Some(String::from_str(&env, "ChronoPay")));
+    assert_eq!(cached_symbol, Some(Symbol::new(&env, "TIME_TOKEN")));
 }
 
 #[test]
