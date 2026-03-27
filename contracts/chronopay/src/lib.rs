@@ -24,15 +24,7 @@
 //! - Slot IDs are generated using a monotonic counter.
 //! - Overflow is checked using `checked_add`.
 //! - Token ownership writes should require authentication in production.
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TimeTokenStatus {
-    Available,
-    Sold,
-    Redeemed,
-}
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,6 +32,8 @@ pub enum DataKey {
     SlotSeq,
     Owner,
     Status,
+    Paused,
+    Admin,
 }
 
 #[contract]
@@ -199,7 +193,7 @@ impl ChronoPayContract {
 /// # Storage Effects
 ///
 /// Writes:
-/// - `DataKey::Status` → `Redeemed`    pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
+/// - `DataKey::Status` → `Redeemed`
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
         let _ = token_id;
         env.storage()
@@ -222,7 +216,7 @@ impl ChronoPayContract {
 ///
 /// Returns a vector containing:
 /// - "ChronoPay"
-/// - the provided name    pub fn hello(env: Env, to: String) -> Vec<String> {
+/// - the provided name   
      pub fn hello(env: Env, to: String) -> Vec<String> {
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
