@@ -71,7 +71,7 @@ impl ChronoPayContract {
     /// - Buyer must authorize the purchase (handled by buyer.require_auth in production).
     pub fn buy_time_token(env: Env, token_id: Symbol, buyer: Address, seller: Address) -> bool {
         let _ = (token_id, seller); // seller is still unused in this stub
-        
+
         // Simulating authorization for the buyer.
         buyer.require_auth();
 
@@ -95,7 +95,7 @@ impl ChronoPayContract {
             .instance()
             .get(&DataKey::Status)
             .unwrap_or(TimeTokenStatus::Available);
-            
+
         if status == TimeTokenStatus::Redeemed {
             panic!("token already redeemed");
         }
