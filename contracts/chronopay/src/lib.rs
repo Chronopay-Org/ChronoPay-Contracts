@@ -200,6 +200,7 @@ impl ChronoPayContract {
 ///
 /// Writes:
 /// - `DataKey::Status` → `Redeemed`    pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
+    pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
         let _ = token_id;
         env.storage()
             .instance()
@@ -222,6 +223,7 @@ impl ChronoPayContract {
 /// Returns a vector containing:
 /// - "ChronoPay"
 /// - the provided name    pub fn hello(env: Env, to: String) -> Vec<String> {
+     pub fn hello(env: Env, to: String) -> Vec<String> {
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 }
