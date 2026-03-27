@@ -6,8 +6,6 @@
   },
   "auth": [
     [],
-    [],
-    [],
     []
   ],
   "ledger": {
@@ -39,43 +37,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotSeq"
+                            "symbol": "CancelWindowSecs"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "SlotStartTime"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "u64": "1000"
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
+                        "u64": "7200"
                       }
                     }
                   ]

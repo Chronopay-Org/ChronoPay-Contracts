@@ -13,7 +13,7 @@
   "ledger": {
     "protocol_version": 25,
     "sequence_number": 0,
-    "timestamp": 0,
+    "timestamp": 4000,
     "network_id": "0000000000000000000000000000000000000000000000000000000000000000",
     "base_reserve": 0,
     "min_persistent_entry_ttl": 4096,
@@ -59,7 +59,7 @@
                         ]
                       },
                       "val": {
-                        "u64": "1000"
+                        "u64": "8000"
                       }
                     },
                     {
@@ -73,7 +73,7 @@
                       "val": {
                         "vec": [
                           {
-                            "symbol": "Redeemed"
+                            "symbol": "Available"
                           }
                         ]
                       }

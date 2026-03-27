@@ -6,8 +6,6 @@
   },
   "auth": [
     [],
-    [],
-    [],
     []
   ],
   "ledger": {
@@ -34,51 +32,7 @@
                   "executable": {
                     "wasm": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                   },
-                  "storage": [
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "SlotSeq"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "SlotStartTime"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "u64": "1000"
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
-                      }
-                    }
-                  ]
+                  "storage": null
                 }
               }
             }

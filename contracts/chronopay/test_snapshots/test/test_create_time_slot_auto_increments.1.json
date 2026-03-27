@@ -46,6 +46,51 @@
                       "val": {
                         "u32": 3
                       }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "SlotStartTime"
+                          },
+                          {
+                            "u32": 1
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u64": "1000"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "SlotStartTime"
+                          },
+                          {
+                            "u32": 2
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u64": "3000"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "SlotStartTime"
+                          },
+                          {
+                            "u32": 3
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u64": "5000"
+                      }
                     }
                   ]
                 }
