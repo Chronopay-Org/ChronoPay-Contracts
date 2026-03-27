@@ -7,8 +7,6 @@
   "auth": [
     [],
     [],
-    [],
-    [],
     []
   ],
   "ledger": {
@@ -40,28 +38,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotSeq"
+                            "symbol": "Owner"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
+                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                       }
                     }
                   ]

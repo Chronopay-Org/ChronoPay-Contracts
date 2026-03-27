@@ -1,23 +1,13 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+mod domain;
+#[cfg(test)]
+mod test;
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TimeTokenStatus {
-    Available,
-    Sold,
-    Redeemed,
-}
+pub use domain::{DataKey, TimeTokenStatus};
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DataKey {
-    SlotSeq,
-    Owner,
-    Status,
-}
+use soroban_sdk::{contract, contractimpl, vec, Env, String, Symbol, Vec};
 
 #[contract]
 pub struct ChronoPayContract;
@@ -35,13 +25,9 @@ impl ChronoPayContract {
             .get(&DataKey::SlotSeq)
             .unwrap_or(0u32);
 
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
@@ -75,5 +61,3 @@ impl ChronoPayContract {
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 }
-
-mod test;
