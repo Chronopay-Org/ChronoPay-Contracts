@@ -90,6 +90,5 @@ fn test_buy_time_token_sets_owner() {
         &String::from_str(&env, "buyer"),
         &String::from_str(&env, "seller"),
     );
-
     assert!(success);
 }
