@@ -1,7 +1,9 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec, Address};
+
+mod fee;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -17,6 +19,8 @@ pub enum DataKey {
     SlotSeq,
     Owner,
     Status,
+    Admin,
+    FeeBps,
 }
 
 #[contract]
@@ -24,8 +28,30 @@ pub struct ChronoPayContract;
 
 #[contractimpl]
 impl ChronoPayContract {
+    /// Initialize the contract with an admin and initial platform fee in basis points.
+    pub fn initialize(env: Env, admin: Address, fee_bps: u32) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+        if fee_bps > 10000 {
+            panic!("fee_bps cannot exceed 10000");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
+    }
+
+    /// Update the platform fee basis points.
+    pub fn update_fee(env: Env, new_bps: u32) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        admin.require_auth();
+
+        if new_bps > 10000 {
+            panic!("fee_bps cannot exceed 10000");
+        }
+        env.storage().instance().set(&DataKey::FeeBps, &new_bps);
+    }
+
     /// Create a time slot with an auto-incrementing slot id.
-    /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
         let _ = (professional, start_time, end_time);
 
@@ -52,16 +78,24 @@ impl ChronoPayContract {
         Symbol::new(&env, "TIME_TOKEN")
     }
 
-    /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
-    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
-        let _ = (token_id, buyer, seller);
+    /// Buy / transfer time token (stub). Includes platform fee calculation.
+    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: Address, seller: Address, price: i128) -> i128 {
+        buyer.require_auth();
+        let _ = (token_id, seller);
+
+        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+        let platform_fee = fee::calculate_fee(price, fee_bps);
+        
         env.storage()
             .instance()
-            .set(&DataKey::Owner, &env.current_contract_address());
-        true
+            .set(&DataKey::Owner, &buyer);
+        
+        // In a real implementation, we would transfer 'price - platform_fee' to seller 
+        // and 'platform_fee' to the platform treasury.
+        platform_fee
     }
 
-    /// Redeem time token (stub). In full implementation: token_id, marks as redeemed.
+    /// Redeem time token (stub).
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
         let _ = token_id;
         env.storage()
