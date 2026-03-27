@@ -35,13 +35,9 @@ impl ChronoPayContract {
             .get(&DataKey::SlotSeq)
             .unwrap_or(0u32);
 
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
