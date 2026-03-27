@@ -60,3 +60,36 @@ fn test_mint_and_redeem() {
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
+#[test]
+#[should_panic]
+fn test_slot_sequence_overflow() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    env.storage()
+        .instance()
+        .set(&DataKey::SlotSeq, &u32::MAX);
+
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &1000u64,
+        &2000u64,
+    );
+}
+#[test]
+fn test_buy_time_token_sets_owner() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let token = soroban_sdk::Symbol::new(&env, "TIME_TOKEN");
+
+    let success = client.buy_time_token(
+        &token,
+        &String::from_str(&env, "buyer"),
+        &String::from_str(&env, "seller"),
+    );
+
+    assert!(success);
+}
