@@ -25,6 +25,15 @@
 //! - Overflow is checked using `checked_add`.
 //! - Token ownership writes should require authentication in production.
 use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    SlotSeq,
+    Owner,
+    Status,
+    Paused,
+    Admin,
+}
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -205,6 +214,39 @@ impl ChronoPayContract {
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
+        pub fn initialize(env: Env, admin: Address) {
+            if env.storage().instance().has(&DataKey::Admin) {
+                panic!("already initialized");
+            }
+        
+            admin.require_auth();
+        
+            env.storage().instance().set(&DataKey::Admin, &admin);
+        }
+        
+        pub fn pause(env: Env) {
+            let admin: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::Admin)
+                .expect("admin not set");
+        
+            admin.require_auth();
+        
+            env.storage().instance().set(&DataKey::Paused, &true);
+        }
+        
+        pub fn unpause(env: Env) {
+            let admin: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::Admin)
+                .expect("admin not set");
+        
+            admin.require_auth();
+        
+            env.storage().instance().set(&DataKey::Paused, &false);
+        }
     }
 
 /// Simple greeting entrypoint used for CI validation.

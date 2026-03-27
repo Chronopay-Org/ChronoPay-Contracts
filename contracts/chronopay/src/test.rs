@@ -93,3 +93,49 @@ fn test_buy_time_token_sets_owner() {
 
     assert!(success);
 }
+#[test]
+#[should_panic]
+fn test_create_slot_when_paused() {
+
+    let env = Env::default();
+    let admin = Address::generate(&env);
+
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    client.initialize(&admin);
+
+    env.mock_all_auths();
+
+    client.pause();
+
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &1000u64,
+        &2000u64,
+    );
+}
+#[test]
+fn test_unpause_restores_functionality() {
+
+    let env = Env::default();
+    let admin = Address::generate(&env);
+
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    client.initialize(&admin);
+
+    env.mock_all_auths();
+
+    client.pause();
+    client.unpause();
+
+    let slot = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &1000u64,
+        &2000u64,
+    );
+
+    assert_eq!(slot, 1);
+}
