@@ -4,6 +4,9 @@
 use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 mod fee;
+mod threat;
+
+pub use threat::{Threat, ThreatChecklist};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +24,7 @@ pub enum DataKey {
     Status,
     Admin,
     FeeBps,
+    ThreatChecklist,
 }
 
 #[contract]
@@ -106,6 +110,39 @@ impl ChronoPayContract {
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
+    }
+
+    /// Add a mitigation to the threat model checklist.
+    pub fn add_mitigation(env: Env, threat: Threat) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        admin.require_auth();
+
+        let mut checklist: ThreatChecklist = env
+            .storage()
+            .instance()
+            .get(&DataKey::ThreatChecklist)
+            .unwrap_or(ThreatChecklist {
+                mitigations: Vec::new(&env),
+            });
+
+        threat::add_mitigation(&env, &mut checklist, threat);
+        env.storage()
+            .instance()
+            .set(&DataKey::ThreatChecklist, &checklist);
+    }
+
+    /// Get the current threat model checklist.
+    pub fn get_checklist(env: Env) -> ThreatChecklist {
+        env.storage()
+            .instance()
+            .get(&DataKey::ThreatChecklist)
+            .unwrap_or(ThreatChecklist {
+                mitigations: Vec::new(&env),
+            })
     }
 
     /// Hello-style entrypoint for CI and SDK sanity check.
