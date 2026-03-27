@@ -60,3 +60,62 @@ fn test_mint_and_redeem() {
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
+
+fn create_long_string(env: &Env) -> String {
+    let mut s = [0u8; 65];
+    for i in 0..65 {
+        s[i] = b'A';
+    }
+    let st = core::str::from_utf8(&s).unwrap();
+    String::from_str(env, st)
+}
+
+#[test]
+#[should_panic(expected = "string_too_long")]
+fn test_long_professional_panics() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let long_prof = create_long_string(&env);
+    client.create_time_slot(&long_prof, &1000u64, &2000u64);
+}
+
+#[test]
+#[should_panic(expected = "string_too_long")]
+fn test_long_buyer_panics() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let long_buyer = create_long_string(&env);
+    let valid_seller = String::from_str(&env, "seller");
+    client.buy_time_token(
+        &soroban_sdk::Symbol::new(&env, "TKN"),
+        &long_buyer,
+        &valid_seller,
+    );
+}
+
+#[test]
+#[should_panic(expected = "string_too_long")]
+fn test_long_seller_panics() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let valid_buyer = String::from_str(&env, "buyer");
+    let long_seller = create_long_string(&env);
+    client.buy_time_token(
+        &soroban_sdk::Symbol::new(&env, "TKN"),
+        &valid_buyer,
+        &long_seller,
+    );
+}
+
+#[test]
+#[should_panic(expected = "string_too_long")]
+fn test_long_hello_panics() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let long_to = create_long_string(&env);
+    client.hello(&long_to);
+}

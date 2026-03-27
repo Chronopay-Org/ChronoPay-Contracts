@@ -22,11 +22,20 @@ pub enum DataKey {
 #[contract]
 pub struct ChronoPayContract;
 
+const MAX_STRING_LEN: u32 = 64;
+
+fn validate_string_max_len(s: &String, limit: u32) {
+    if s.len() > limit {
+        panic!("string_too_long");
+    }
+}
+
 #[contractimpl]
 impl ChronoPayContract {
     /// Create a time slot with an auto-incrementing slot id.
     /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
+        validate_string_max_len(&professional, MAX_STRING_LEN);
         let _ = (professional, start_time, end_time);
 
         let current_seq: u32 = env
@@ -35,13 +44,9 @@ impl ChronoPayContract {
             .get(&DataKey::SlotSeq)
             .unwrap_or(0u32);
 
-        let next_seq = current_seq
-            .checked_add(1)
-            .expect("slot id overflow");
+        let next_seq = current_seq.checked_add(1).expect("slot id overflow");
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SlotSeq, &next_seq);
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
@@ -54,6 +59,8 @@ impl ChronoPayContract {
 
     /// Buy / transfer time token (stub). In full implementation: token_id, buyer, seller, price.
     pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
+        validate_string_max_len(&buyer, MAX_STRING_LEN);
+        validate_string_max_len(&seller, MAX_STRING_LEN);
         let _ = (token_id, buyer, seller);
         env.storage()
             .instance()
@@ -72,6 +79,7 @@ impl ChronoPayContract {
 
     /// Hello-style entrypoint for CI and SDK sanity check.
     pub fn hello(env: Env, to: String) -> Vec<String> {
+        validate_string_max_len(&to, MAX_STRING_LEN);
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 }
