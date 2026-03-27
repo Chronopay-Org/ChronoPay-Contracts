@@ -9,6 +9,8 @@ on:
 jobs:
   fmt-build-test:
     runs-on: ubuntu-latest
+    env:
+      toolchain: stable
     steps:
       - uses: actions/checkout@v4
 

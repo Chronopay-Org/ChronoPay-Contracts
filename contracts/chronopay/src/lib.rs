@@ -68,13 +68,15 @@ impl ChronoPayContract {
         };
 
         // Persist token data and update the sequence.
-        env.storage().instance().set(&DataKey::Token(next_seq), &token);
+        env.storage()
+            .instance()
+            .set(&DataKey::Token(next_seq), &token);
         env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
 
         next_seq
     }
 
-    /// Mint a time token for a slot (stub). 
+    /// Mint a time token for a slot (stub).
     /// In this implementation, create_time_slot already initializes the token data.
     /// This function remains for interface compatibility and could be expanded later.
     pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
@@ -82,7 +84,7 @@ impl ChronoPayContract {
         if !env.storage().instance().has(&key) {
             panic!("token does not exist");
         }
-        
+
         Symbol::new(&env, "TIME_TOKEN")
     }
 
