@@ -54,7 +54,7 @@
                               "symbol": "end_time"
                             },
                             "val": {
-                              "u64": "2000"
+                              "u64": "20"
                             }
                           },
                           {
@@ -62,7 +62,7 @@
                               "symbol": "professional"
                             },
                             "val": {
-                              "string": "pro"
+                              "string": "grace"
                             }
                           },
                           {
@@ -70,7 +70,7 @@
                               "symbol": "start_time"
                             },
                             "val": {
-                              "u64": "1000"
+                              "u64": "10"
                             }
                           }
                         ]
@@ -88,7 +88,7 @@
                         ]
                       },
                       "val": {
-                        "string": "buyer"
+                        "string": "buyer_1"
                       }
                     },
                     {
@@ -117,7 +117,7 @@
                       "val": {
                         "vec": [
                           {
-                            "symbol": "Redeemed"
+                            "symbol": "Sold"
                           }
                         ]
                       }
