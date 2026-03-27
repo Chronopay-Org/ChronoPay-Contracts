@@ -97,7 +97,7 @@ fn test_cancel_within_window() {
     let env = Env::default();
     // Default window is 3600
     env.ledger().set_timestamp(4000); // Current time is 4000
-    
+
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
@@ -116,7 +116,7 @@ fn test_cancel_after_window_panics() {
     let env = Env::default();
     // Default window is 3600
     env.ledger().set_timestamp(4500); // Current time is 4500
-    
+
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
@@ -180,7 +180,7 @@ fn test_double_cancel_panics() {
     client.buy_time_slot(&slot_id, &String::from_str(&env, "buyer_bob"));
 
     client.cancel_time_slot(&slot_id, &String::from_str(&env, "buyer_bob"));
-    
+
     // Second time panics because the buyer record was deleted
     client.cancel_time_slot(&slot_id, &String::from_str(&env, "buyer_bob"));
 }
