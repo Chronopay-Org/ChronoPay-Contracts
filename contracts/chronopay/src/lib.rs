@@ -1,7 +1,7 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, Map, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -68,6 +68,20 @@ impl ChronoPayContract {
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
+    }
+
+    /// Returns contract version metadata (name, version).
+    pub fn version(env: Env) -> Map<String, String> {
+        let mut meta = Map::new(&env);
+        meta.set(
+            String::from_str(&env, "name"),
+            String::from_str(&env, env!("CARGO_PKG_NAME")),
+        );
+        meta.set(
+            String::from_str(&env, "version"),
+            String::from_str(&env, env!("CARGO_PKG_VERSION")),
+        );
+        meta
     }
 
     /// Hello-style entrypoint for CI and SDK sanity check.

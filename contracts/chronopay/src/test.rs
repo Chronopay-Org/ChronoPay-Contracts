@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{vec, Env, String};
+use soroban_sdk::{vec, Env, Map, String};
 
 #[test]
 fn test_hello() {
@@ -59,4 +59,22 @@ fn test_mint_and_redeem() {
 
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
+}
+
+#[test]
+fn test_version_metadata() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let meta: Map<String, String> = client.version();
+
+    assert_eq!(
+        meta.get(String::from_str(&env, "name")).unwrap(),
+        String::from_str(&env, "chronopay-contract")
+    );
+    assert_eq!(
+        meta.get(String::from_str(&env, "version")).unwrap(),
+        String::from_str(&env, "0.1.0")
+    );
 }
