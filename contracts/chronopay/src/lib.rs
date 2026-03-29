@@ -1,7 +1,14 @@
 #![no_std]
 //! ChronoPay time token contract — stub for create_time_slot, mint_time_token, buy_time_token, redeem_time_token.
 
-use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, vec, Env, String, Symbol, Vec};
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Error {
+    SlotNotFound = 1,
+}
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,6 +22,7 @@ pub enum TimeTokenStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
     SlotSeq,
+    SlotOwner(u32),
     Owner,
     Status,
 }
@@ -27,7 +35,7 @@ impl ChronoPayContract {
     /// Create a time slot with an auto-incrementing slot id.
     /// Returns the newly assigned slot id.
     pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
-        let _ = (professional, start_time, end_time);
+        let _ = (start_time, end_time);
 
         let current_seq: u32 = env
             .storage()
@@ -42,6 +50,10 @@ impl ChronoPayContract {
         env.storage()
             .instance()
             .set(&DataKey::SlotSeq, &next_seq);
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::SlotOwner(next_seq), &professional);
 
         next_seq
     }
@@ -68,6 +80,14 @@ impl ChronoPayContract {
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
         true
+    }
+
+    /// Retrieve the professional owner of a configured time slot.
+    pub fn get_slot_owner(env: Env, slot_id: u32) -> Result<String, Error> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::SlotOwner(slot_id))
+            .ok_or(Error::SlotNotFound)
     }
 
     /// Hello-style entrypoint for CI and SDK sanity check.

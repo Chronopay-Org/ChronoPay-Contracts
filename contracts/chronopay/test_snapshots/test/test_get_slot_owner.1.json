@@ -7,7 +7,6 @@
   "auth": [
     [],
     [],
-    [],
     []
   ],
   "ledger": {
@@ -39,7 +38,7 @@
               },
               "durability": "persistent",
               "val": {
-                "string": "pro"
+                "string": "professional_bob"
               }
             }
           },
@@ -72,22 +71,6 @@
                       },
                       "val": {
                         "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
                       }
                     }
                   ]

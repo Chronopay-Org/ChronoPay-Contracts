@@ -60,3 +60,26 @@ fn test_mint_and_redeem() {
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
+
+#[test]
+fn test_get_slot_owner() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let pro = String::from_str(&env, "professional_bob");
+    let slot_id = client.create_time_slot(&pro, &1000u64, &2000u64);
+
+    let owner = client.get_slot_owner(&slot_id);
+    assert_eq!(owner, pro);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #1)")]
+fn test_get_slot_owner_not_found() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    client.get_slot_owner(&99);
+}
