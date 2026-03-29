@@ -6,6 +6,8 @@
 //! | Entry point        | Positive path | Unauth caller | Wrong role | Bad state |
 //! |--------------------|:---:|:---:|:---:|:---:|
 //! | `initialize`       | ✓ | ✓ | — | ✓ (re-init) |
+//! | `propose_admin`    | ✓ | ✓ | ✓ (non-admin) | ✓ (same admin) |
+//! | `accept_admin`     | ✓ | ✓ | ✓ (wrong admin)| ✓ (no proposal)|
 //! | `create_time_slot` | ✓ | ✓ | — | ✓ (bad range) |
 //! | `mint_time_token`  | ✓ | ✓ | ✓ (non-admin) | — |
 //! | `buy_time_token`   | ✓ | ✓ | — | ✓ (unminted/sold) |
@@ -109,7 +111,86 @@ fn test_initialize_rejects_same_admin_reinit() {
 }
 
 // ===========================================================================
-// 3. `create_time_slot`
+// 3. Admin rotation
+// ===========================================================================
+
+#[test]
+fn test_propose_admin_success() {
+    let (env, client, admin) = setup_with_admin();
+    let new_admin = Address::generate(&env);
+    client.propose_admin(&admin, &new_admin);
+}
+
+#[test]
+#[should_panic(expected = "caller is not admin")]
+fn test_propose_admin_rejects_non_admin() {
+    let (env, client, _admin) = setup_with_admin();
+    let impostor = Address::generate(&env);
+    let new_admin = Address::generate(&env);
+    client.propose_admin(&impostor, &new_admin);
+}
+
+#[test]
+#[should_panic(expected = "already admin")]
+fn test_propose_admin_rejects_same_admin() {
+    let (_env, client, admin) = setup_with_admin();
+    client.propose_admin(&admin, &admin);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Auth")]
+fn test_propose_admin_rejects_without_auth_signature() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+}
+
+#[test]
+fn test_accept_admin_success() {
+    let (env, client, admin) = setup_with_admin();
+    let new_admin = Address::generate(&env);
+    
+    client.propose_admin(&admin, &new_admin);
+    client.accept_admin(&new_admin);
+    
+    // Test the new admin can propose a transfer
+    let another_admin = Address::generate(&env);
+    client.propose_admin(&new_admin, &another_admin);
+}
+
+#[test]
+#[should_panic(expected = "caller not proposed admin")]
+fn test_accept_admin_rejects_non_proposed() {
+    let (env, client, admin) = setup_with_admin();
+    let new_admin = Address::generate(&env);
+    let interloper = Address::generate(&env);
+    
+    client.propose_admin(&admin, &new_admin);
+    client.accept_admin(&interloper);
+}
+
+#[test]
+#[should_panic(expected = "no proposed admin")]
+fn test_accept_admin_rejects_before_proposal() {
+    let (env, client, _admin) = setup_with_admin();
+    let new_admin = Address::generate(&env);
+    client.accept_admin(&new_admin);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Auth")]
+fn test_accept_admin_rejects_without_auth_signature() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+}
+
+// ===========================================================================
+// 4. `create_time_slot`
 // ===========================================================================
 
 #[test]
@@ -157,7 +238,7 @@ fn test_create_time_slot_rejects_equal_start_end() {
 }
 
 // ===========================================================================
-// 4. `mint_time_token`
+// 5. `mint_time_token`
 // ===========================================================================
 
 #[test]
@@ -203,7 +284,7 @@ fn test_mint_time_token_rejects_before_init() {
 }
 
 // ===========================================================================
-// 5. `buy_time_token`
+// 6. `buy_time_token`
 // ===========================================================================
 
 #[test]
@@ -257,7 +338,7 @@ fn test_buy_time_token_rejects_already_sold() {
 }
 
 // ===========================================================================
-// 6. `redeem_time_token`
+// 7. `redeem_time_token`
 // ===========================================================================
 
 #[test]

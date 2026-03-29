@@ -18,6 +18,8 @@ pub enum DataKey {
     SlotSeq,
     /// Contract administrator address.
     Admin,
+    /// Proposed new contract administrator.
+    ProposedAdmin,
     /// Owner address of a specific token (keyed by slot id).
     TokenOwner(u32),
     /// Status of a specific token (keyed by slot id).
@@ -55,6 +57,42 @@ impl ChronoPayContract {
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
+    }
+
+    // -----------------------------------------------------------------------
+    // Admin rotation
+    // -----------------------------------------------------------------------
+
+    /// Propose a new admin. Only the current admin can call this.
+    /// This is the first step of a two-step rotation process.
+    pub fn propose_admin(env: Env, admin: Address, new_admin: Address) {
+        Self::require_admin(&env, &admin);
+
+        if admin == new_admin {
+            panic!("already admin");
+        }
+
+        env.storage().instance().set(&DataKey::ProposedAdmin, &new_admin);
+    }
+
+    /// Accept the proposed admin role. Only the proposed new admin can call this.
+    /// This completes the two-step rotation process.
+    pub fn accept_admin(env: Env, new_admin: Address) {
+        new_admin.require_auth();
+
+        let proposed: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::ProposedAdmin)
+            .expect("no proposed admin");
+
+        if new_admin != proposed {
+            panic!("caller not proposed admin");
+        }
+
+        // Complete the transfer
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        env.storage().instance().remove(&DataKey::ProposedAdmin);
     }
 
     // -----------------------------------------------------------------------
