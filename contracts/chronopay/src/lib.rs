@@ -72,7 +72,9 @@ impl ChronoPayContract {
             panic!("already admin");
         }
 
-        env.storage().instance().set(&DataKey::ProposedAdmin, &new_admin);
+        env.storage()
+            .instance()
+            .set(&DataKey::ProposedAdmin, &new_admin);
     }
 
     /// Accept the proposed admin role. Only the proposed new admin can call this.

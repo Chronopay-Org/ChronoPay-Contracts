@@ -151,10 +151,10 @@ fn test_propose_admin_rejects_without_auth_signature() {
 fn test_accept_admin_success() {
     let (env, client, admin) = setup_with_admin();
     let new_admin = Address::generate(&env);
-    
+
     client.propose_admin(&admin, &new_admin);
     client.accept_admin(&new_admin);
-    
+
     // Test the new admin can propose a transfer
     let another_admin = Address::generate(&env);
     client.propose_admin(&new_admin, &another_admin);
@@ -166,7 +166,7 @@ fn test_accept_admin_rejects_non_proposed() {
     let (env, client, admin) = setup_with_admin();
     let new_admin = Address::generate(&env);
     let interloper = Address::generate(&env);
-    
+
     client.propose_admin(&admin, &new_admin);
     client.accept_admin(&interloper);
 }
