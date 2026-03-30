@@ -60,3 +60,16 @@ fn test_mint_and_redeem() {
     let redeemed = client.redeem_time_token(&token);
     assert!(redeemed);
 }
+
+#[test]
+#[should_panic]
+fn test_prevent_double_mint_same_slot() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let slot_id = client.create_time_slot(&String::from_str(&env, "pro"), &1000u64, &2000u64);
+    // First mint must succeed
+    client.mint_time_token(&slot_id);
+    // Second mint on the same slot must panic
+    client.mint_time_token(&slot_id);
+}

@@ -17,6 +17,8 @@ pub enum DataKey {
     SlotSeq,
     Owner,
     Status,
+    /// Tracks whether a slot has already been minted. Prevents double minting.
+    Minted(u32),
 }
 
 #[contract]
@@ -46,9 +48,14 @@ impl ChronoPayContract {
         next_seq
     }
 
-    /// Mint a time token for a slot (stub).
+    /// Mint a time token for a slot.
+    /// Panics if the slot has already been minted — prevents double minting (SC-009).
     pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
-        let _ = slot_id;
+        let minted_key = DataKey::Minted(slot_id);
+        if env.storage().instance().has(&minted_key) {
+            panic!("slot already minted");
+        }
+        env.storage().instance().set(&minted_key, &true);
         Symbol::new(&env, "TIME_TOKEN")
     }
 
