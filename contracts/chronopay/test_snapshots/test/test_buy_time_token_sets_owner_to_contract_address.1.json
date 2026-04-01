@@ -6,6 +6,7 @@
   },
   "auth": [
     [],
+    [],
     []
   ],
   "ledger": {
@@ -37,12 +38,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "Owner"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                       }
                     }
                   ]
