@@ -6,6 +6,8 @@
 //! | Entry point        | Positive path | Unauth caller | Wrong role | Bad state |
 //! |--------------------|:---:|:---:|:---:|:---:|
 //! | `initialize`       | ✓ | ✓ | — | ✓ (re-init) |
+//! | `propose_admin`    | ✓ | ✓ | ✓ (non-admin) | ✓ (same admin) |
+//! | `accept_admin`     | ✓ | ✓ | ✓ (wrong admin)| ✓ (no proposal)|
 //! | `create_time_slot` | ✓ | ✓ | — | ✓ (bad range) |
 //! | `mint_time_token`  | ✓ | ✓ | ✓ (non-admin) | — |
 //! | `buy_time_token`   | ✓ | ✓ | — | ✓ (unminted/sold) |
