@@ -19,10 +19,10 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                 },
                 {
-                  "u64": "1000"
+                  "u64": "10"
                 },
                 {
-                  "u64": "2000"
+                  "u64": "20"
                 }
               ]
             }
@@ -38,16 +38,38 @@
           "function": {
             "contract_fn": {
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "function_name": "create_time_slot",
+              "function_name": "mint_time_token",
               "args": [
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "u32": 1
                 },
                 {
-                  "u64": "3000"
-                },
-                {
-                  "u64": "4000"
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "description"
+                      },
+                      "val": {
+                        "string": "D"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "image_uri"
+                      },
+                      "val": {
+                        "string": "I"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "name"
+                      },
+                      "val": {
+                        "string": "T"
+                      }
+                    }
+                  ]
                 }
               ]
             }
@@ -56,31 +78,7 @@
         }
       ]
     ],
-    [
-      [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-        {
-          "function": {
-            "contract_fn": {
-              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "function_name": "create_time_slot",
-              "args": [
-                {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                },
-                {
-                  "u64": "5000"
-                },
-                {
-                  "u64": "6000"
-                }
-              ]
-            }
-          },
-          "sub_invocations": []
-        }
-      ]
-    ]
+    []
   ],
   "ledger": {
     "protocol_version": 25,
@@ -117,7 +115,7 @@
                       "symbol": "end_time"
                     },
                     "val": {
-                      "u64": "2000"
+                      "u64": "20"
                     }
                   },
                   {
@@ -133,14 +131,16 @@
                       "symbol": "start_time"
                     },
                     "val": {
-                      "u64": "1000"
+                      "u64": "10"
                     }
                   },
                   {
                     "key": {
                       "symbol": "token"
                     },
-                    "val": "void"
+                    "val": {
+                      "symbol": "TIME_1"
+                    }
                   }
                 ]
               }
@@ -160,10 +160,10 @@
               "key": {
                 "vec": [
                   {
-                    "symbol": "Slot"
+                    "symbol": "Token"
                   },
                   {
-                    "u32": 2
+                    "symbol": "TIME_1"
                   }
                 ]
               },
@@ -172,10 +172,51 @@
                 "map": [
                   {
                     "key": {
+                      "symbol": "current_owner"
+                    },
+                    "val": {
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                    }
+                  },
+                  {
+                    "key": {
                       "symbol": "end_time"
                     },
                     "val": {
-                      "u64": "4000"
+                      "u64": "20"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "metadata"
+                    },
+                    "val": {
+                      "map": [
+                        {
+                          "key": {
+                            "symbol": "description"
+                          },
+                          "val": {
+                            "string": "D"
+                          }
+                        },
+                        {
+                          "key": {
+                            "symbol": "image_uri"
+                          },
+                          "val": {
+                            "string": "I"
+                          }
+                        },
+                        {
+                          "key": {
+                            "symbol": "name"
+                          },
+                          "val": {
+                            "string": "T"
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -188,60 +229,10 @@
                   },
                   {
                     "key": {
-                      "symbol": "start_time"
+                      "symbol": "slot_id"
                     },
                     "val": {
-                      "u64": "3000"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "token"
-                    },
-                    "val": "void"
-                  }
-                ]
-              }
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 4095
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "key": {
-                "vec": [
-                  {
-                    "symbol": "Slot"
-                  },
-                  {
-                    "u32": 3
-                  }
-                ]
-              },
-              "durability": "persistent",
-              "val": {
-                "map": [
-                  {
-                    "key": {
-                      "symbol": "end_time"
-                    },
-                    "val": {
-                      "u64": "6000"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "professional"
-                    },
-                    "val": {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                      "u32": 1
                     }
                   },
                   {
@@ -249,14 +240,28 @@
                       "symbol": "start_time"
                     },
                     "val": {
-                      "u64": "5000"
+                      "u64": "10"
                     }
                   },
                   {
                     "key": {
-                      "symbol": "token"
+                      "symbol": "status"
                     },
-                    "val": "void"
+                    "val": {
+                      "vec": [
+                        {
+                          "symbol": "Available"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "token_id"
+                    },
+                    "val": {
+                      "symbol": "TIME_1"
+                    }
                   }
                 ]
               }
@@ -290,7 +295,19 @@
                         ]
                       },
                       "val": {
-                        "u32": 3
+                        "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "TokenSeq"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "u32": 1
                       }
                     }
                   ]
@@ -312,26 +329,6 @@
               "key": {
                 "ledger_key_nonce": {
                   "nonce": "801925984706572462"
-                }
-              },
-              "durability": "temporary",
-              "val": "void"
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 6311999
-      },
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-              "key": {
-                "ledger_key_nonce": {
-                  "nonce": "1033654523790656264"
                 }
               },
               "durability": "temporary",
@@ -378,29 +375,5 @@
       }
     ]
   },
-  "events": [
-    {
-      "event": {
-        "ext": "v0",
-        "contract_id": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-        "type_": "contract",
-        "body": {
-          "v0": {
-            "topics": [
-              {
-                "symbol": "slot_created"
-              },
-              {
-                "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-              }
-            ],
-            "data": {
-              "u32": 3
-            }
-          }
-        }
-      },
-      "failed_call": false
-    }
-  ]
+  "events": []
 }

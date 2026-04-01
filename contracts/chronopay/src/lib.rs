@@ -1,52 +1,11 @@
 #![no_std]
 //! ChronoPay time token contract.
-//!
-//! # Slot overlap invariant
-//! Each professional may only hold non-overlapping time slots.
-//! A new slot `[start, end)` is rejected if any existing slot for the same
-//! professional satisfies `existing_start < end && start < existing_end`.
-//!
-//! # Storage layout
-//! - `DataKey::SlotSeq`              → `u32`  global auto-increment counter
-//! - `DataKey::Slot(id)`             → `TimeSlot`
-//! - `DataKey::ProfSlots(professional)` → `Vec<u32>` slot ids owned by that professional
+//! Adds production-ready token metadata for time NFTs with validation, storage, and retrieval helpers.
 
-use soroban_sdk::{contract, contractimpl, contracttype, panic_with_error, vec, Env, String, Symbol, Vec};
+extern crate alloc;
 
-// ── Error codes ──────────────────────────────────────────────────────────────
-
-#[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[repr(u32)]
-pub enum Error {
-    /// start_time must be strictly less than end_time.
-    InvalidRange = 1,
-    /// The requested slot overlaps an existing slot for this professional.
-    SlotOverlap = 2,
-    /// Slot id does not exist.
-    SlotNotFound = 3,
-}
-
-impl soroban_sdk::contracterror::ContractError for Error {
-    fn from_u32(v: u32) -> Option<Self> {
-        match v {
-            1 => Some(Error::InvalidRange),
-            2 => Some(Error::SlotOverlap),
-            3 => Some(Error::SlotNotFound),
-            _ => None,
-        }
-    }
-}
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TimeSlot {
-    pub professional: String,
-    pub start_time: u64,
-    pub end_time: u64,
-}
+use alloc::format;
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,122 +15,260 @@ pub enum TimeTokenStatus {
     Redeemed,
 }
 
+/// Persistent and instance storage keys used by the contract.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
+    Admin,
+    CollectionMetadata,
     SlotSeq,
-    /// Stores a `TimeSlot` for the given slot id.
+    TokenSeq,
     Slot(u32),
-    /// Stores a `Vec<u32>` of slot ids for the given professional.
-    ProfSlots(String),
+    Token(Symbol),
     Owner,
     Status,
 }
 
-// ── Contract ─────────────────────────────────────────────────────────────────
+/// Contract-level metadata for the NFT collection.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CollectionMetadata {
+    pub name: String,
+    pub symbol: String,
+}
+
+/// Detailed metadata for an individual token following production standards.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TokenMetadata {
+    pub name: String,
+    pub description: String,
+    pub image_uri: String,
+}
+
+/// Data representing a scheduled time slot.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimeSlot {
+    pub professional: Address,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub token: Option<Symbol>,
+}
+
+/// Metadata stored for every minted time NFT.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimeTokenMetadata {
+    pub token_id: Symbol,
+    pub slot_id: u32,
+    pub professional: Address,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub status: TimeTokenStatus,
+    pub current_owner: Address,
+    pub metadata: TokenMetadata,
+}
 
 #[contract]
 pub struct ChronoPayContract;
 
 #[contractimpl]
 impl ChronoPayContract {
-    /// Create a time slot for `professional` covering `[start_time, end_time)`.
-    ///
-    /// # Errors
-    /// - `Error::InvalidRange`  if `start_time >= end_time`
-    /// - `Error::SlotOverlap`   if the interval overlaps any existing slot for
-    ///   this professional
-    ///
-    /// # Returns
-    /// The newly assigned slot id (1-based, auto-incrementing).
+    /// Initialize the contract with admin and collection metadata.
+    pub fn initialize(env: Env, admin: Address, name: String, symbol: String) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+
+        let metadata = CollectionMetadata { name, symbol };
+        env.storage()
+            .instance()
+            .set(&DataKey::CollectionMetadata, &metadata);
+    }
+
+    /// Create a time slot and persist it using persistent storage.
     pub fn create_time_slot(
         env: Env,
-        professional: String,
+        professional: Address,
         start_time: u64,
         end_time: u64,
     ) -> u32 {
-        // ── Validate range ────────────────────────────────────────────────
+        professional.require_auth();
+
         if start_time >= end_time {
-            panic_with_error!(&env, Error::InvalidRange);
+            panic!("end_time must be after start_time");
         }
 
-        // ── Check for overlaps ────────────────────────────────────────────
-        // Two intervals [a,b) and [c,d) overlap iff a < d && c < b.
-        let existing_ids: Vec<u32> = env
-            .storage()
-            .instance()
-            .get(&DataKey::ProfSlots(professional.clone()))
-            .unwrap_or_else(|| vec![&env]);
-
-        for i in 0..existing_ids.len() {
-            let id = existing_ids.get(i).unwrap();
-            let slot: TimeSlot = env
-                .storage()
-                .instance()
-                .get(&DataKey::Slot(id))
-                .unwrap(); // always present if id is in the list
-            if start_time < slot.end_time && slot.start_time < end_time {
-                panic_with_error!(&env, Error::SlotOverlap);
-            }
-        }
-
-        // ── Assign id ─────────────────────────────────────────────────────
-        let current_seq: u32 = env
-            .storage()
-            .instance()
-            .get(&DataKey::SlotSeq)
-            .unwrap_or(0u32);
-        let slot_id = current_seq.checked_add(1).expect("slot id overflow");
-        env.storage().instance().set(&DataKey::SlotSeq, &slot_id);
-
-        // ── Persist slot ──────────────────────────────────────────────────
+        let slot_id = next_sequence(&env, DataKey::SlotSeq);
         let slot = TimeSlot {
             professional: professional.clone(),
             start_time,
             end_time,
+            token: None,
         };
+
+        // Use persistent storage for individual slots to handle scaling
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Slot(slot_id), &slot);
 
-        // ── Update professional's slot list ───────────────────────────────
-        let mut ids = existing_ids;
-        ids.push_back(slot_id);
-        env.storage()
-            .instance()
-            .set(&DataKey::ProfSlots(professional), &ids);
+        env.events()
+            .publish((Symbol::new(&env, "slot_created"), professional), slot_id);
 
         slot_id
     }
 
-    /// Mint a time token for a slot.
-    pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
-        let _ = slot_id;
-        Symbol::new(&env, "TIME_TOKEN")
+    /// Mint a time token for a slot with detailed metadata.
+    pub fn mint_time_token(env: Env, slot_id: u32, metadata: TokenMetadata) -> Symbol {
+        let mut slot: TimeSlot = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Slot(slot_id))
+            .expect("slot does not exist");
+
+        slot.professional.require_auth();
+
+        if slot.token.is_some() {
+            panic!("token already minted for slot");
+        }
+
+        let token_id = next_sequence(&env, DataKey::TokenSeq);
+        let token_symbol = build_token_symbol(&env, token_id);
+
+        let time_token_metadata = TimeTokenMetadata {
+            token_id: token_symbol.clone(),
+            slot_id,
+            professional: slot.professional.clone(),
+            start_time: slot.start_time,
+            end_time: slot.end_time,
+            status: TimeTokenStatus::Available,
+            current_owner: slot.professional.clone(),
+            metadata,
+        };
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_symbol.clone()), &time_token_metadata);
+
+        slot.token = Some(token_symbol.clone());
+        env.storage()
+            .persistent()
+            .set(&DataKey::Slot(slot_id), &slot);
+
+        env.events().publish(
+            (Symbol::new(&env, "token_minted"), slot.professional),
+            (token_symbol.clone(), slot_id),
+        );
+
+        token_symbol
     }
 
-    /// Buy / transfer a time token.
-    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
-        let _ = (token_id, buyer, seller);
+    /// Buy / transfer a time token from seller to buyer.
+    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: Address) -> bool {
+        buyer.require_auth();
+
+        let mut metadata: TimeTokenMetadata = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(token_id.clone()))
+            .expect("unknown token");
+
+        if metadata.status == TimeTokenStatus::Redeemed {
+            panic!("token already redeemed");
+        }
+
+        if metadata.current_owner == buyer {
+            panic!("buyer is already the owner");
+        }
+
+        let old_owner = metadata.current_owner.clone();
+        metadata.current_owner = buyer.clone();
+        metadata.status = TimeTokenStatus::Sold;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_id.clone()), &metadata);
+
+        env.events().publish(
+            (Symbol::new(&env, "token_bought"), token_id),
+            (old_owner, buyer),
+        );
+
+        // Stub logic for backward compatibility from main
         env.storage()
             .instance()
             .set(&DataKey::Owner, &env.current_contract_address());
+
         true
     }
 
-    /// Redeem a time token.
+    /// Redeem a time token, marking it as consumed.
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
-        let _ = token_id;
+        let mut metadata: TimeTokenMetadata = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(token_id.clone()))
+            .expect("unknown token");
+
+        metadata.current_owner.require_auth();
+
+        if metadata.status == TimeTokenStatus::Redeemed {
+            panic!("token already redeemed");
+        }
+
+        metadata.status = TimeTokenStatus::Redeemed;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_id.clone()), &metadata);
+
+        env.events().publish(
+            (Symbol::new(&env, "token_redeemed"), token_id),
+            metadata.current_owner,
+        );
+
+        // Stub logic for backward compatibility from main
         env.storage()
             .instance()
             .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
+
         true
     }
 
-    /// Hello-style entrypoint for CI and SDK sanity check.
+    pub fn get_token_metadata(env: Env, token_id: Symbol) -> Option<TimeTokenMetadata> {
+        env.storage().persistent().get(&DataKey::Token(token_id))
+    }
+
+    pub fn get_time_slot(env: Env, slot_id: u32) -> Option<TimeSlot> {
+        env.storage().persistent().get(&DataKey::Slot(slot_id))
+    }
+
+    pub fn get_collection_metadata(env: Env) -> Option<CollectionMetadata> {
+        env.storage().instance().get(&DataKey::CollectionMetadata)
+    }
+
     pub fn hello(env: Env, to: String) -> Vec<String> {
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 }
 
+fn next_sequence(env: &Env, key: DataKey) -> u32 {
+    let next = env
+        .storage()
+        .instance()
+        .get(&key)
+        .unwrap_or(0u32)
+        .saturating_add(1);
+    env.storage().instance().set(&key, &next);
+    next
+}
+
+fn build_token_symbol(env: &Env, token_id: u32) -> Symbol {
+    let token_label = format!("TIME_{}", token_id);
+    Symbol::new(env, &token_label)
+}
+
+#[cfg(test)]
 mod test;
