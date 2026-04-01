@@ -253,3 +253,48 @@ fn test_buy_requires_distinct_parties() {
     let token = client.mint_time_token(&slot_id, &token_metadata);
     let _ = client.buy_time_token(&token, &professional);
 }
+
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn test_create_time_slot_start_time_in_past() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time.saturating_sub(100)),
+        &(current_time + 1000),
+    );
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_create_time_slot_invalid_time_range() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 500),
+    );
+}
+
+#[test]
+fn test_create_time_slot_valid() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    let result = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
+    );
+    assert_eq!(result, 1);
+}
