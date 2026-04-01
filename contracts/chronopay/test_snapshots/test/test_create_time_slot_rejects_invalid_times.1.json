@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 1,
+    "address": 2,
     "nonce": 0,
     "mux_id": 0
   },
@@ -32,20 +32,7 @@
                   "executable": {
                     "wasm": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                   },
-                  "storage": [
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "SlotSeq"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "u32": 1
-                      }
-                    }
-                  ]
+                  "storage": null
                 }
               }
             }
