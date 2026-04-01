@@ -94,6 +94,10 @@ pub struct TimeTokenMetadata {
     pub metadata: TokenMetadata,
 }
 
+// ---------------------------------------------------------------------------
+// Contract
+// ---------------------------------------------------------------------------
+
 #[contract]
 pub struct ChronoPayContract;
 
