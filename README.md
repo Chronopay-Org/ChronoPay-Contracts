@@ -28,6 +28,23 @@ Acceptance criteria for the redeem access-control flow:
 - Invalid slot or token identifiers fail without changing ownership or status.
 - Automated tests cover success, authorization failure, invalid input, and repeat-action failure paths.
 
+## Defensive Arithmetic Notes
+
+`contracts/chronopay/src` now applies explicit arithmetic validation in
+`create_time_slot` so timestamp and sequence handling do not rely on Rust's
+debug-only overflow behavior.
+
+- `end_time` must be strictly greater than `start_time`
+- slot id allocation fails cleanly when the internal sequence reaches `u32::MAX`
+- invalid arithmetic paths return typed contract errors that are covered by tests
+
+Acceptance criteria for this change:
+
+- slot creation succeeds for valid increasing timestamps
+- zero-length and inverted time ranges are rejected
+- slot sequence overflow is rejected without mutating storage
+- the existing mint / buy / redeem stubs continue to behave as before
+
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/) (stable)

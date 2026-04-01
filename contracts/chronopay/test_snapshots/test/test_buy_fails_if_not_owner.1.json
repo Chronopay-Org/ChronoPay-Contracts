@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 2,
+    "address": 4,
     "nonce": 0,
     "mux_id": 0
   },
@@ -31,27 +31,7 @@
         }
       ]
     ],
-    [],
-    [],
-    [
-      [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-        {
-          "function": {
-            "contract_fn": {
-              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "function_name": "redeem_time_token",
-              "args": [
-                {
-                  "symbol": "TIME_TOKEN"
-                }
-              ]
-            }
-          },
-          "sub_invocations": []
-        }
-      ]
-    ]
+    []
   ],
   "ledger": {
     "protocol_version": 25,
@@ -63,64 +43,6 @@
     "min_temp_entry_ttl": 16,
     "max_entry_ttl": 6312000,
     "ledger_entries": [
-      {
-        "entry": {
-          "last_modified_ledger_seq": 0,
-          "data": {
-            "contract_data": {
-              "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "key": {
-                "vec": [
-                  {
-                    "symbol": "Slot"
-                  },
-                  {
-                    "u32": 1
-                  }
-                ]
-              },
-              "durability": "persistent",
-              "val": {
-                "map": [
-                  {
-                    "key": {
-                      "symbol": "end_time"
-                    },
-                    "val": {
-                      "u64": "2000"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "professional"
-                    },
-                    "val": {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "start_time"
-                    },
-                    "val": {
-                      "u64": "1000"
-                    }
-                  },
-                  {
-                    "key": {
-                      "symbol": "token"
-                    },
-                    "val": "void"
-                  }
-                ]
-              }
-            }
-          },
-          "ext": "v0"
-        },
-        "live_until": 4095
-      },
       {
         "entry": {
           "last_modified_ledger_seq": 0,
@@ -140,21 +62,6 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "Owner"
-                          },
-                          {
-                            "symbol": "TIME_TOKEN"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
                             "symbol": "SlotSeq"
                           }
                         ]
@@ -167,10 +74,10 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "Status"
+                            "symbol": "Token"
                           },
                           {
-                            "symbol": "TIME_TOKEN"
+                            "u32": 1
                           }
                         ]
                       },
@@ -223,49 +130,9 @@
                             "val": {
                               "vec": [
                                 {
-                                  "symbol": "Redeemed"
+                                  "symbol": "Available"
                                 }
                               ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "TimeSlot"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "map": [
-                          {
-                            "key": {
-                              "symbol": "end_time"
-                            },
-                            "val": {
-                              "u64": "2000"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "professional"
-                            },
-                            "val": {
-                              "string": "pro"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "start_time"
-                            },
-                            "val": {
-                              "u64": "1000"
                             }
                           }
                         ]
