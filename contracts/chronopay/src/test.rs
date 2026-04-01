@@ -20,6 +20,14 @@ fn setup() -> Env {
     Env::default()
 }
 
+fn setup(env: &Env) -> ChronoPayContractClient<'_> {
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    ChronoPayContractClient::new(env, &contract_id)
+}
+
+// ── Hello uses CONTRACT_NAME ──────────────────────────────────────────────
+
 #[test]
 fn test_hello() {
     let env = setup();
