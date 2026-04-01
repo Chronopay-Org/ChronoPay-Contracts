@@ -6,7 +6,6 @@
   },
   "auth": [
     [],
-    [],
     []
   ],
   "ledger": {
@@ -38,12 +37,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "CancelWindowSecs"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "u64": "7200"
                       }
                     }
                   ]

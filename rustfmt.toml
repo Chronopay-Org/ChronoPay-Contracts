@@ -1,0 +1,5 @@
+# rustfmt configuration for ChronoPay-Contracts
+# Only stable options are used here so the CI `cargo fmt --check` step works
+# on the stable toolchain without requiring a nightly channel.
+
+edition = "2021"
