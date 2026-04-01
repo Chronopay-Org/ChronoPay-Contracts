@@ -30,9 +30,9 @@ pub enum ChronoPayError {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TimeTokenStatus {
-    Available,
-    Sold,
-    Redeemed,
+    Available, // Initial state, can be bought.
+    Sold,      // Has been purchased, can be resold or redeemed.
+    Redeemed,  // Final state, token service has been consumed.
 }
 
 /// Persistent and instance storage keys used by the contract.
