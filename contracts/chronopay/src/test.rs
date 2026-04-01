@@ -1,4 +1,16 @@
 #![cfg(test)]
+//! Negative + positive tests for the ChronoPay contract.
+//!
+//! ## Coverage matrix
+//!
+//! | Entry point        | Positive path | Unauth caller | Wrong role | Bad state |
+//! |--------------------|:---:|:---:|:---:|:---:|
+//! | `initialize`       | ✓ | ✓ | — | ✓ (re-init) |
+//! | `create_time_slot` | ✓ | ✓ | — | ✓ (bad range) |
+//! | `mint_time_token`  | ✓ | ✓ | ✓ (non-admin) | — |
+//! | `buy_time_token`   | ✓ | ✓ | — | ✓ (unminted/sold) |
+//! | `redeem_time_token`| ✓ | ✓ | ✓ (non-owner) | ✓ (not sold) |
+//! | `hello`            | ✓ | — | — | — |
 
 use super::*;
 use soroban_sdk::testutils::Address as _;
@@ -13,6 +25,44 @@ fn test_hello() {
     let env = setup();
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
+    (env, contract_id, client)
+}
+
+/// Setup with an already-initialised admin.
+fn setup_with_admin() -> (Env, ChronoPayContractClient<'static>, Address) {
+    let (env, _cid, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    (env, client, admin)
+}
+
+/// Full setup: admin initialised, slot created, token minted and bought.
+fn setup_full_lifecycle() -> (
+    Env,
+    ChronoPayContractClient<'static>,
+    Address, // admin
+    Address, // professional
+    Address, // buyer
+    u32,     // slot_id
+) {
+    let (env, client, admin) = setup_with_admin();
+    let professional = Address::generate(&env);
+    let buyer = Address::generate(&env);
+
+    let slot_id = client.create_time_slot(&professional, &1000u64, &2000u64);
+    client.mint_time_token(&admin, &slot_id);
+    client.buy_time_token(&buyer, &slot_id);
+
+    (env, client, admin, professional, buyer, slot_id)
+}
+
+// ===========================================================================
+// 1. `hello` — sanity (no auth required)
+// ===========================================================================
+
+#[test]
+fn test_hello() {
+    let (env, _cid, client) = setup();
 
 // ── hello ─────────────────────────────────────────────────────────────────────
 
@@ -293,6 +343,7 @@ fn test_buy_requires_distinct_parties() {
 #[should_panic(expected = "Error(Contract, #5)")]
 fn test_create_time_slot_start_time_in_past() {
     let env = Env::default();
+    // Do NOT mock auths — real auth enforcement.
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
 
@@ -340,6 +391,10 @@ fn test_redeem_by_owner_succeeds() {
     env.mock_all_auths();
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    // initialize itself requires auth, so this will panic.
+    client.initialize(&admin);
+}
 
     let current_time = env.ledger().timestamp();
     let slot_id = client.create_time_slot(
