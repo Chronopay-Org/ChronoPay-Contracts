@@ -31,7 +31,6 @@
         }
       ]
     ],
-    [],
     []
   ],
   "ledger": {
@@ -127,62 +126,6 @@
                       },
                       "val": {
                         "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "TimeSlot"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "map": [
-                          {
-                            "key": {
-                              "symbol": "end_time"
-                            },
-                            "val": {
-                              "u64": "2000"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "professional"
-                            },
-                            "val": {
-                              "string": "pro"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "start_time"
-                            },
-                            "val": {
-                              "u64": "1000"
-                            }
-                          }
-                        ]
                       }
                     }
                   ]
