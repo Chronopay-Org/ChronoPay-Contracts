@@ -484,3 +484,48 @@ fn test_redeem_after_redeem_fails() {
     client.redeem_time_token(&token);
     client.redeem_time_token(&token);
 }
+
+#[test]
+fn test_threat_checklist_flow() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin, &250);
+
+    // Initial checklist should be empty
+    let checklist = client.get_checklist();
+    assert_eq!(checklist.mitigations.len(), 0);
+
+    // Admin adds mitigations
+    env.mock_all_auths();
+    client.add_mitigation(&Threat::Reentrancy);
+    client.add_mitigation(&Threat::Overflow);
+
+    let checklist = client.get_checklist();
+    assert_eq!(checklist.mitigations.len(), 2);
+    assert!(checklist
+        .mitigations
+        .iter()
+        .any(|x| x == Threat::Reentrancy));
+    assert!(checklist.mitigations.iter().any(|x| x == Threat::Overflow));
+
+    // Adding duplicate should not change anything
+    client.add_mitigation(&Threat::Reentrancy);
+    let checklist = client.get_checklist();
+    assert_eq!(checklist.mitigations.len(), 2);
+}
+
+#[test]
+#[should_panic] // Should fail because no auth is provided for 'admin'
+fn test_threat_checklist_unauthorized() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin, &250);
+
+    client.add_mitigation(&Threat::Reentrancy);
+}
