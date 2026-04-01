@@ -37,12 +37,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotSeq"
+                            "symbol": "Owner"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                       }
                     }
                   ]
