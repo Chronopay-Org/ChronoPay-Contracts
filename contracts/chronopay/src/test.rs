@@ -22,11 +22,7 @@ fn test_hello() {
     let words = client.hello(&String::from_str(&env, "Dev"));
     assert_eq!(
         words,
-        vec![
-            &env,
-            String::from_str(&env, "ChronoPay"),
-            String::from_str(&env, "Dev"),
-        ]
+        vec![&env, String::from_str(&env, "ChronoPay"), String::from_str(&env, "Dev"),]
     );
 }
 
