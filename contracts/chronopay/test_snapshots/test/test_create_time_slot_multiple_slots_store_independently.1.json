@@ -54,7 +54,7 @@
                               "symbol": "end_time"
                             },
                             "val": {
-                              "u64": "2000"
+                              "u64": "200"
                             }
                           },
                           {
@@ -62,7 +62,7 @@
                               "symbol": "professional"
                             },
                             "val": {
-                              "string": "pro"
+                              "string": "alice"
                             }
                           },
                           {
@@ -70,7 +70,7 @@
                               "symbol": "start_time"
                             },
                             "val": {
-                              "u64": "1000"
+                              "u64": "100"
                             }
                           }
                         ]
@@ -80,15 +80,40 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "SlotOwner"
+                            "symbol": "Slot"
                           },
                           {
-                            "u32": 1
+                            "u32": 2
                           }
                         ]
                       },
                       "val": {
-                        "string": "buyer"
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "end_time"
+                            },
+                            "val": {
+                              "u64": "400"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "professional"
+                            },
+                            "val": {
+                              "string": "bob"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "start_time"
+                            },
+                            "val": {
+                              "u64": "300"
+                            }
+                          }
+                        ]
                       }
                     },
                     {
@@ -100,7 +125,7 @@
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "u32": 2
                       }
                     },
                     {
@@ -117,7 +142,26 @@
                       "val": {
                         "vec": [
                           {
-                            "symbol": "Redeemed"
+                            "symbol": "Available"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "SlotStatus"
+                          },
+                          {
+                            "u32": 2
+                          }
+                        ]
+                      },
+                      "val": {
+                        "vec": [
+                          {
+                            "symbol": "Available"
                           }
                         ]
                       }

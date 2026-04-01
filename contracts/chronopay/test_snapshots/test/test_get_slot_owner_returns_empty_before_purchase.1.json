@@ -7,8 +7,6 @@
   "auth": [
     [],
     [],
-    [],
-    [],
     []
   ],
   "ledger": {
@@ -54,7 +52,7 @@
                               "symbol": "end_time"
                             },
                             "val": {
-                              "u64": "2000"
+                              "u64": "20"
                             }
                           },
                           {
@@ -62,7 +60,7 @@
                               "symbol": "professional"
                             },
                             "val": {
-                              "string": "pro"
+                              "string": "nora"
                             }
                           },
                           {
@@ -70,25 +68,10 @@
                               "symbol": "start_time"
                             },
                             "val": {
-                              "u64": "1000"
+                              "u64": "10"
                             }
                           }
                         ]
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "SlotOwner"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "string": "buyer"
                       }
                     },
                     {
@@ -117,7 +100,7 @@
                       "val": {
                         "vec": [
                           {
-                            "symbol": "Redeemed"
+                            "symbol": "Available"
                           }
                         ]
                       }

@@ -9,6 +9,10 @@
     [],
     [],
     [],
+    [],
+    [],
+    [],
+    [],
     []
   ],
   "ledger": {
@@ -62,7 +66,7 @@
                               "symbol": "professional"
                             },
                             "val": {
-                              "string": "pro"
+                              "string": "lena"
                             }
                           },
                           {
@@ -88,7 +92,7 @@
                         ]
                       },
                       "val": {
-                        "string": "buyer"
+                        "string": "mike"
                       }
                     },
                     {
