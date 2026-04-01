@@ -1,0 +1,397 @@
+﻿cargo : warning: 
+profiles for the non 
+root package will be 
+ignored, specify 
+profiles at the 
+workspace root:
+At line:1 char:1
++ cargo test 
+--manifest-path contract
+s/chronopay/Cargo.toml 
+--color nev ...
++ ~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo      
+        : NotSpecified  
+  : (warning: profil.   
+ ..workspace root::S    
+tring) [], RemoteEx    
+ception
+    + FullyQualifiedErr 
+   orId : NativeComman  
+  dError
+ 
+package:   C:\Users\ADMI
+N\Desktop\innovative-dri
+ps\ChronoPay-Contracts\c
+ontracts\chronopay\Cargo
+.toml
+workspace: C:\Users\ADMI
+N\Desktop\innovative-dri
+ps\ChronoPay-Contracts\C
+argo.toml
+   Compiling 
+chronopay-contract 
+v0.1.0 (C:\Users\ADMIN\D
+esktop\innovative-drips\
+ChronoPay-Contracts\cont
+racts\chronopay)
+error[E0599]: no 
+function or associated 
+item named `generate` 
+found for struct 
+`soroban_sdk::Address` 
+in the current scope
+   --> contracts\chronop
+ay\src\test.rs:58:26
+    |
+ 58 |     let buyer = 
+Address::generate(&env);
+    |                   
+       ^^^^^^^^ 
+function or associated 
+item not found in 
+`soroban_sdk::Address`
+    |
+note: if you're trying 
+to build a new 
+`soroban_sdk::Address` 
+consider using one of 
+the following 
+associated functions:
+      soroban_sdk::Addre
+ss::from_str
+      soroban_sdk::Addre
+ss::from_string
+      soroban_sdk::Addre
+ss::from_string_bytes
+   --> C:\Users\ADMIN\.c
+argo\registry\src\index.
+crates.io-1949cf8c6b5b55
+7f\soroban-sdk-25.3.0\sr
+c\address.rs:273:5
+    |
+273 |     pub fn 
+from_str(env: &Env, 
+strkey: &str) -> 
+Address {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+...
+285 |     pub fn 
+from_string(strkey: 
+&String) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+...
+307 |     pub fn from_st
+ring_bytes(strkey: 
+&Bytes) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    = help: items from 
+traits can only be used 
+if the trait is in scope
+help: trait `Address` 
+which provides 
+`generate` is 
+implemented but not in 
+scope; perhaps you want 
+to import it
+    |
+  3 + use soroban_sdk::t
+estutils::Address;
+    |
+
+error[E0599]: no 
+function or associated 
+item named `generate` 
+found for struct 
+`soroban_sdk::Address` 
+in the current scope
+   --> contracts\chronop
+ay\src\test.rs:87:26
+    |
+ 87 |     let buyer = 
+Address::generate(&env);
+    |                   
+       ^^^^^^^^ 
+function or associated 
+item not found in 
+`soroban_sdk::Address`
+    |
+note: if you're trying 
+to build a new 
+`soroban_sdk::Address` 
+consider using one of 
+the following 
+associated functions:
+      soroban_sdk::Addre
+ss::from_str
+      soroban_sdk::Addre
+ss::from_string
+      soroban_sdk::Addre
+ss::from_string_bytes
+   --> C:\Users\ADMIN\.c
+argo\registry\src\index.
+crates.io-1949cf8c6b5b55
+7f\soroban-sdk-25.3.0\sr
+c\address.rs:273:5
+    |
+273 |     pub fn 
+from_str(env: &Env, 
+strkey: &str) -> 
+Address {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+...
+285 |     pub fn 
+from_string(strkey: 
+&String) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+...
+307 |     pub fn from_st
+ring_bytes(strkey: 
+&Bytes) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    = help: items from 
+traits can only be used 
+if the trait is in scope
+help: trait `Address` 
+which provides 
+`generate` is 
+implemented but not in 
+scope; perhaps you want 
+to import it
+    |
+  3 + use soroban_sdk::t
+estutils::Address;
+    |
+
+error[E0599]: no 
+function or associated 
+item named `generate` 
+found for struct 
+`soroban_sdk::Address` 
+in the current scope
+   --> contracts\chronop
+ay\src\test.rs:134:26
+    |
+134 |     let buyer = 
+Address::generate(&env);
+    |                   
+       ^^^^^^^^ 
+function or associated 
+item not found in 
+`soroban_sdk::Address`
+    |
+note: if you're trying 
+to build a new 
+`soroban_sdk::Address` 
+consider using one of 
+the following 
+associated functions:
+      soroban_sdk::Addre
+ss::from_str
+      soroban_sdk::Addre
+ss::from_string
+      soroban_sdk::Addre
+ss::from_string_bytes
+   --> C:\Users\ADMIN\.c
+argo\registry\src\index.
+crates.io-1949cf8c6b5b55
+7f\soroban-sdk-25.3.0\sr
+c\address.rs:273:5
+    |
+273 |     pub fn 
+from_str(env: &Env, 
+strkey: &str) -> 
+Address {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+...
+285 |     pub fn 
+from_string(strkey: 
+&String) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+...
+307 |     pub fn from_st
+ring_bytes(strkey: 
+&Bytes) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    = help: items from 
+traits can only be used 
+if the trait is in scope
+help: trait `Address` 
+which provides 
+`generate` is 
+implemented but not in 
+scope; perhaps you want 
+to import it
+    |
+  3 + use soroban_sdk::t
+estutils::Address;
+    |
+
+error[E0599]: no 
+function or associated 
+item named `generate` 
+found for struct 
+`soroban_sdk::Address` 
+in the current scope
+   --> contracts\chronop
+ay\src\test.rs:167:26
+    |
+167 |     let buyer = 
+Address::generate(&env);
+    |                   
+       ^^^^^^^^ 
+function or associated 
+item not found in 
+`soroban_sdk::Address`
+    |
+note: if you're trying 
+to build a new 
+`soroban_sdk::Address` 
+consider using one of 
+the following 
+associated functions:
+      soroban_sdk::Addre
+ss::from_str
+      soroban_sdk::Addre
+ss::from_string
+      soroban_sdk::Addre
+ss::from_string_bytes
+   --> C:\Users\ADMIN\.c
+argo\registry\src\index.
+crates.io-1949cf8c6b5b55
+7f\soroban-sdk-25.3.0\sr
+c\address.rs:273:5
+    |
+273 |     pub fn 
+from_str(env: &Env, 
+strkey: &str) -> 
+Address {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+...
+285 |     pub fn 
+from_string(strkey: 
+&String) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+...
+307 |     pub fn from_st
+ring_bytes(strkey: 
+&Bytes) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    = help: items from 
+traits can only be used 
+if the trait is in scope
+help: trait `Address` 
+which provides 
+`generate` is 
+implemented but not in 
+scope; perhaps you want 
+to import it
+    |
+  3 + use soroban_sdk::t
+estutils::Address;
+    |
+
+error[E0599]: no 
+function or associated 
+item named `generate` 
+found for struct 
+`soroban_sdk::Address` 
+in the current scope
+   --> contracts\chronop
+ay\src\test.rs:185:26
+    |
+185 |     let buyer = 
+Address::generate(&env);
+    |                   
+       ^^^^^^^^ 
+function or associated 
+item not found in 
+`soroban_sdk::Address`
+    |
+note: if you're trying 
+to build a new 
+`soroban_sdk::Address` 
+consider using one of 
+the following 
+associated functions:
+      soroban_sdk::Addre
+ss::from_str
+      soroban_sdk::Addre
+ss::from_string
+      soroban_sdk::Addre
+ss::from_string_bytes
+   --> C:\Users\ADMIN\.c
+argo\registry\src\index.
+crates.io-1949cf8c6b5b55
+7f\soroban-sdk-25.3.0\sr
+c\address.rs:273:5
+    |
+273 |     pub fn 
+from_str(env: &Env, 
+strkey: &str) -> 
+Address {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+...
+285 |     pub fn 
+from_string(strkey: 
+&String) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
+...
+307 |     pub fn from_st
+ring_bytes(strkey: 
+&Bytes) -> Self {
+    |     ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    = help: items from 
+traits can only be used 
+if the trait is in scope
+help: trait `Address` 
+which provides 
+`generate` is 
+implemented but not in 
+scope; perhaps you want 
+to import it
+    |
+  3 + use soroban_sdk::t
+estutils::Address;
+    |
+
+For more information 
+about this error, try 
+`rustc --explain E0599`.
+error: could not 
+compile 
+`chronopay-contract` 
+(lib test) due to 5 
+previous errors
