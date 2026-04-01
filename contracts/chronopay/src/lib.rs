@@ -109,6 +109,7 @@ impl ChronoPayContract {
             token: None,
         };
 
+        // Use persistent storage for individual slots to handle scaling
         env.storage()
             .persistent()
             .set(&DataKey::Slot(slot_id), &slot);

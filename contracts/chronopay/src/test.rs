@@ -92,7 +92,17 @@ fn test_create_time_slot_auto_increments() {
 
     assert_eq!(slot_id_1, 1);
     assert_eq!(slot_id_2, 2);
-    assert_eq!(slot_id_3, 3);
+
+    // Query existing slot (From feature/sc-038 logic)
+    let slot = client.get_time_slot(&slot_id_1).expect("slot should exist");
+    assert_eq!(slot.professional, professional);
+    assert_eq!(slot.start_time, 1000u64);
+    assert_eq!(slot.end_time, 2000u64);
+    assert!(slot.token.is_none());
+
+    // Query non-existent slot
+    let non_existent = client.get_time_slot(&999u32);
+    assert!(non_existent.is_none());
 }
 
 #[test]
