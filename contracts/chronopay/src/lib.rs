@@ -107,6 +107,9 @@ pub struct TimeTokenMetadata {
 // Contract
 // ---------------------------------------------------------------------------
 
+const CONTRACT_NAME: &str = "ChronoPay";
+const TIME_TOKEN_SYMBOL: &str = "TIME_TOKEN";
+
 #[contract]
 pub struct ChronoPayContract;
 

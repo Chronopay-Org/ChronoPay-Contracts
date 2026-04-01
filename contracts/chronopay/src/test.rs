@@ -82,6 +82,13 @@ fn test_hello() {
         words,
         vec![&env, String::from_str(&env, "ChronoPay"), String::from_str(&env, "Dev"),]
     );
+
+    let cached_name = env.as_contract(&contract_id, || {
+        env.storage()
+            .instance()
+            .get::<DataKey, String>(&DataKey::ContractName)
+    });
+    assert_eq!(cached_name, Some(String::from_str(&env, "ChronoPay")));
 }
 
 // ── create_time_slot: happy paths ─────────────────────────────────────────────

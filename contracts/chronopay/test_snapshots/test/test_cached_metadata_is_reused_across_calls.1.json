@@ -7,6 +7,9 @@
   "auth": [
     [],
     [],
+    [],
+    [],
+    [],
     []
   ],
   "ledger": {
@@ -38,12 +41,24 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "ContractName"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "string": "ChronoPay"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "TokenSymbol"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "symbol": "TIME_TOKEN"
                       }
                     }
                   ]
