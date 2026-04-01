@@ -310,6 +310,7 @@ impl ChronoPayContract {
     }
 
     pub fn hello(env: Env, to: String) -> Vec<String> {
+        let _ = Self::ensure_version(&env);
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 
