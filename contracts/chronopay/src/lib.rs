@@ -46,7 +46,7 @@ pub struct TimeSlot {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone)]
 pub enum DataKey {
     Admin,
     CollectionMetadata,

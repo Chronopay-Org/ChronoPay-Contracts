@@ -404,6 +404,7 @@ fn test_redeem_by_owner_succeeds() {
     );
     let token = client.mint_time_token(&slot_id);
     assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
+}
 
     let owner = Address::generate(&env);
     let seller = Address::generate(&env);
