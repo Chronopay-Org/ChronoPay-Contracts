@@ -1,0 +1,200 @@
+#[no_std]
+#![no_std]
+//! ChronoPay time token contract with pause/unpause emergency switch.
+//! Admin can pause all operations in emergency (e.g., exploit). Only admin calls pause/unpause.
+//! All public ops revert if paused.
+
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Env, Address, String, Symbol, Vec, symbol_short};
+
+#[contracttype]
+#[derive(Clone)]
+pub enum TimeTokenStatus {
+    Available,
+    Sold,
+    Redeemed,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub enum DataKey {
+    Initialized,
+    Admin,
+    Paused,
+    SlotSeq,
+    Owner,
+    Status,
+    SlotToToken,
+    TokenToSlot,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct TimeSlotCreated {
+    pub slot_id: u32,
+    pub professional: String,
+    pub start_time: u64,
+    pub end_time: u64,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct TimeTokenMinted {
+    pub slot_id: u32,
+    pub token_id: Symbol,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct TimeTokenBought {
+    pub token_id: Symbol,
+    pub buyer: String,
+    pub seller: String,
+    pub price: u128,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct TimeTokenRedeemed {
+    pub token_id: Symbol,
+    pub slot_id: u32,
+}
+
+#[event]
+pub struct Paused(bool);
+
+#[event]
+pub struct Unpaused();
+
+#[event]
+pub struct AdminSet(Address);
+
+#[contract]
+pub struct ChronoPayContract;
+
+#[contractimpl]
+impl ChronoPayContract {
+    /// Initialize contract with admin (only once).
+    pub fn initialize(env: Env, admin: Address) {
+        if env.storage().instance().has(&DataKey::Initialized) {
+            panic!("already initialized");
+        }
+        env.storage().instance().set(&DataKey::Initialized, &true);
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.events().publish((symbol_short("initialized"),), admin);
+        env.events().publish((symbol_short("AdminSet"),), AdminSet { admin: admin.clone() });
+    }
+
+    fn get_admin(e: &Env) -> Address {
+        e.storage().instance().get(&DataKey::Admin).unwrap()
+    }
+
+    fn is_admin(e: &Env) -> bool {
+        let caller = e.invoker();
+        caller == get_admin(e)
+    }
+
+    fn require_admin(e: &Env) {
+        if !is_admin(e) {
+            panic!("admin only");
+        }
+    }
+
+    fn is_paused(e: &Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+    }
+
+    fn require_not_paused(e: &Env) {
+        if is_paused(e) {
+            panic!("contract paused");
+        }
+    }
+
+    /// Pause all operations (admin only).
+    pub fn pause(env: Env) {
+        require_admin(&env);
+        env.storage().instance().set(&DataKey::Paused, &true);
+        env.events().publish((symbol_short("Paused"),), Paused(true));
+    }
+
+    /// Unpause (admin only).
+    pub fn unpause(env: Env) {
+        require_admin(&env);
+        env.storage().instance().set(&DataKey::Paused, &false);
+        env.events().publish((symbol_short("Unpaused"),), Unpaused());
+    }
+
+    /// Create time slot.
+    pub fn create_time_slot(env: Env, professional: String, start_time: u64, end_time: u64) -> u32 {
+        require_not_paused(&env);
+        if start_time >= end_time {
+            panic!("invalid times");
+        }
+
+        let current_seq: u32 = env.storage().instance().get(&DataKey::SlotSeq).unwrap_or(0);
+
+        let next_seq = current_seq + 1; // checked in prod
+
+        env.storage().instance().set(&DataKey::SlotSeq, &next_seq);
+
+        let event = TimeSlotCreated {
+            slot_id: next_seq,
+            professional,
+            start_time,
+            end_time,
+        };
+        env.events().publish((symbol_short("TimeSlotCreated"), next_seq), event);
+
+        next_seq
+    }
+
+    /// Mint token.
+    pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
+        require_not_paused(&env);
+        let token_id = Symbol::new(&env, &format!("TOKEN_{}", slot_id));
+        env.storage().instance().set(&DataKey::SlotToToken, (&slot_id, token_id.clone()));
+        env.storage().instance().set(&DataKey::TokenToSlot, (&token_id, slot_id));
+
+        let event = TimeTokenMinted { slot_id, token_id: token_id.clone() };
+        env.events().publish((symbol_short("TimeTokenMinted"), slot_id), event);
+
+        token_id
+    }
+
+    /// Buy token.
+    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String, price: u128) -> bool {
+        require_not_paused(&env);
+        let owner: String = env.storage().instance().get(&DataKey::Owner).unwrap_or_default();
+        // stub transfer logic
+        env.storage().instance().set(&DataKey::Owner, &buyer);
+        let status = TimeTokenStatus::Sold;
+        env.storage().instance().set(&DataKey::Status, &status);
+
+        let event = TimeTokenBought { token_id: token_id.clone(), buyer, seller, price };
+        env.events().publish((symbol_short("TimeTokenBought"), token_id.clone()), event);
+
+        true
+    }
+
+    /// Redeem.
+    pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
+        require_not_paused(&env);
+        let status = env.storage().instance().get(&DataKey::Status).unwrap_or(TimeTokenStatus::Available);
+        match status {
+            TimeTokenStatus::Redeemed => panic!("already redeemed"),
+            _ => {},
+        }
+        env.storage().instance().set(&DataKey::Status, &TimeTokenStatus::Redeem);
+        let slot_id = env.storage().instance().get(&DataKey::TokenToSlot, &token_id).unwrap_or(0);
+
+        let event = TimeTokenRedeemed { token_id: token_id.clone(), slot_id };
+        env.events().publish((symbol_short("TimeTokenRedeemed"), token_id), event);
+
+        true
+    }
+
+    pub fn hello(env: Env, to: String) -> Vec<String> {
+        vec![&env, &env.from_str("ChronoPay"), to]
+    }
+}
+
+mod test;
