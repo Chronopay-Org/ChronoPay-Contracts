@@ -38,12 +38,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "SlotSeq"
                           }
                         ]
                       },
                       "val": {
-                        "u32": 1
+                        "u32": 4294967295
                       }
                     }
                   ]
