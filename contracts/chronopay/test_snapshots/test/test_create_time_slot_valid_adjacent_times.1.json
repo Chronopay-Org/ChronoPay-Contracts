@@ -37,12 +37,52 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "SlotSeq"
                           }
                         ]
                       },
                       "val": {
                         "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "TimeSlot"
+                          },
+                          {
+                            "u32": 1
+                          }
+                        ]
+                      },
+                      "val": {
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "end_time"
+                            },
+                            "val": {
+                              "u64": "1001"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "professional"
+                            },
+                            "val": {
+                              "string": "professional_dave"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "start_time"
+                            },
+                            "val": {
+                              "u64": "1000"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
