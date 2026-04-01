@@ -346,6 +346,30 @@ fn test_create_time_slot_start_time_in_past() {
     // Do NOT mock auths — real auth enforcement.
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.init(&admin);
+    let result = client.try_init(&admin);
+    assert_eq!(result, Err(Ok(SlotError::AlreadyInitialized)));
+}
+
+// ── set_timeout ───────────────────────────────────────────────────────────
+
+#[test]
+fn test_set_timeout_success() {
+    let env = Env::default();
+    let (admin, _, client) = setup(&env);
+    client.set_timeout(&admin, &3600);
+    assert_eq!(client.get_timeout(), 3600);
+}
+
+#[test]
+fn test_set_timeout_wrong_admin() {
+    let env = Env::default();
+    let (_, _, client) = setup(&env);
+    let imposter = Address::generate(&env);
+    let result = client.try_set_timeout(&imposter, &3600);
+    assert_eq!(result, Err(Ok(SlotError::NotAdmin)));
+}
 
     let current_time = env.ledger().timestamp();
     client.create_time_slot(
