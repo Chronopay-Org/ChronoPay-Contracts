@@ -38,6 +38,15 @@ pub enum TimeTokenStatus {
 /// Persistent and instance storage keys used by the contract.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimeSlot {
+    pub professional: Address,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub minted: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
     Admin,
     CollectionMetadata,
