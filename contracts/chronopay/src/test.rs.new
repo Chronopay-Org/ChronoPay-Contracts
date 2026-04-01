@@ -1,0 +1,134 @@
+#[cfg(test)]
+
+use super::*;
+use soroban_sdk::{testutils::Address as _, Env, Address, String, Symbol};
+
+#[test]
+fn test_hello() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let words = client.hello(&e.from_str("Dev"));
+    assert_eq!(
+        words,
+        vec![&e, e.from_str("ChronoPay"), e.from_str("Dev")]
+    );
+}
+
+#[test]
+#[should_panic(expected = "already initialized")]
+fn test_initialize_twice() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let admin = Address::random(&e);
+    client.initialize(&admin);
+    client.initialize(&admin); // panic
+}
+
+#[test]
+fn test_pause_unpause() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let admin = Address::random(&e);
+    let non_admin = Address::random(&e);
+    e.as_account(&non_admin, || {
+        client.initialize(&admin.clone());
+    });
+
+    // non-admin can't pause
+    e.as_account(&non_admin, || {
+        let err = std::panic::catch_unwind(|| {
+            client.pause();
+        });
+        assert!(err.is_err());
+    });
+
+    // admin pause
+    e.as_account(&admin, || {
+        client.pause();
+    });
+
+    // paused, can't create
+    let err = std::panic::catch_unwind(|| {
+        client.create_time_slot(&e.from_str("pro"), &1000, &2000);
+    });
+    assert!(err.is_err());
+
+    // unpause
+    e.as_account(&admin, || {
+        client.unpause();
+    });
+
+    // now ok
+    let slot = client.create_time_slot(&e.from_str("pro"), &1000, &2000);
+    assert_eq!(slot, 1);
+}
+
+#[test]
+fn test_create_auto_inc() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let admin = Address::random(&e);
+    client.initialize(&admin);
+
+    let slot1 = client.create_time_slot(&e.from_str("pro"), &1000, &2000);
+    let slot2 = client.create_time_slot(&e.from_str("pro"), &3000, &4000);
+    assert_eq!(slot1, 1);
+    assert_eq!(slot2, 2);
+}
+
+#[test]
+fn test_mint_redeem() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let admin = Address::random(&e);
+    client.initialize(&admin);
+
+    let slot = client.create_time_slot(&e.from_str("pro"), &1000u64, &2000u64);
+    let token = client.mint_time_token(&slot);
+    assert!(token.to_string(&e).starts_with("TOKEN"));
+
+    let bought = client.buy_time_token(&token.clone(), &e.from_str("buyer"), &e.from_str("seller"), &100u128);
+    assert!(bought);
+
+    let redeemed = client.redeem_time_token(&token);
+    assert!(redeemed);
+}
+
+#[test]
+fn test_events() {
+    let e = Env::default();
+    e.mock_all_auths();
+    let contract_id = e.register_contract(None, ChronoPayContract);
+    let client = ChronoPayContractClient::new(&e, &contract_id);
+
+    let admin = Address::random(&e);
+    client.initialize(&admin.clone());
+
+    // pause event
+    e.as_account(&admin, || {
+        client.pause();
+    });
+    let events = e.events().all();
+    assert!(events.iter().any(|ev| ev.1.contains(&symbol_short("Paused"))));
+
+    // create event
+    client.unpause();
+    let slot = client.create_time_slot(&e.from_str("pro"), &1000, &2000);
+    let events = e.events().all();
+    assert!(events.iter().any(|ev| ev.1.contains(&symbol_short("TimeSlotCreated"))));
+}
