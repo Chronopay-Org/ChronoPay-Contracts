@@ -110,6 +110,29 @@ pub struct TimeTokenMetadata {
 #[contract]
 pub struct ChronoPayContract;
 
+fn get_next_purchase_nonce(env: &Env, buyer: &Address) -> u64 {
+    env.storage()
+        .instance()
+        .get(&DataKey::PurchaseNonce(buyer.clone()))
+        .unwrap_or(0u64)
+}
+
+fn consume_purchase_nonce(env: &Env, buyer: &Address, nonce: u64) -> Result<(), Error> {
+    let expected = get_next_purchase_nonce(env, buyer);
+    if nonce != expected {
+        return Err(Error::InvalidPurchaseNonce);
+    }
+
+    let next = expected
+        .checked_add(1)
+        .ok_or(Error::PurchaseNonceOverflow)?;
+    env.storage()
+        .instance()
+        .set(&DataKey::PurchaseNonce(buyer.clone()), &next);
+
+    Ok(())
+}
+
 #[contractimpl]
 impl ChronoPayContract {
     /// Initialize the contract with admin and collection metadata.
