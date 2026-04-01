@@ -27,6 +27,10 @@ pub enum DataKey {
     Token(Symbol),
     Owner,
     Status,
+    /// Stores the admin Address for pause/unpause authorization.
+    Admin,
+    /// Stores the paused state as a bool.
+    Paused,
 }
 
 /// Contract-level metadata for the NFT collection.
@@ -251,6 +255,30 @@ impl ChronoPayContract {
 
     pub fn hello(env: Env, to: String) -> Vec<String> {
         vec![&env, String::from_str(&env, "ChronoPay"), to]
+    }
+
+    /// Panics if the contract is paused.
+    fn require_not_paused(env: &Env) {
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            panic!("contract is paused");
+        }
+    }
+
+    /// Panics if the provided address is not the stored admin.
+    fn require_admin(env: &Env, caller: &Address) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != *caller {
+            panic!("unauthorized: caller is not admin");
+        }
     }
 }
 
