@@ -6,6 +6,7 @@
   },
   "auth": [
     [],
+    [],
     []
   ],
   "ledger": {
@@ -37,12 +38,52 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ContractVersion"
+                            "symbol": "SlotSeq"
                           }
                         ]
                       },
                       "val": {
                         "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "TimeSlot"
+                          },
+                          {
+                            "u32": 1
+                          }
+                        ]
+                      },
+                      "val": {
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "end_time"
+                            },
+                            "val": {
+                              "u64": "8000"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "professional"
+                            },
+                            "val": {
+                              "string": "professional_frank"
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "start_time"
+                            },
+                            "val": {
+                              "u64": "5000"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]

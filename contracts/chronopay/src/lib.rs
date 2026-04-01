@@ -1,29 +1,32 @@
 #![no_std]
-//! ChronoPay time-token contract with settlement timeout handling.
-//!
-//! Lifecycle: Available → Booked (settlement deadline set) → Settled | TimedOut
-//!
-//! When a slot is booked a settlement deadline is recorded. The buyer must
-//! call `settle_slot` before the deadline. After the deadline anyone can call
-//! `timeout_slot` to reclaim the slot for the professional.
+//! ChronoPay time token contract.
+//! Adds production-ready token metadata for time NFTs with validation, storage, and retrieval helpers.
 
-use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, vec, Address, Env, String,
-    Symbol, Vec,
-};
+extern crate alloc;
 
-// ── Enums ─────────────────────────────────────────────────────────────────
+use alloc::format;
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, String, Symbol, Vec};
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SlotStatus {
-    Available,
-    Booked,
-    Settled,
-    TimedOut,
-    Cancelled,
+/// Errors that can occur during contract execution.
+#[contracterror]
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+#[repr(u32)]
+pub enum ChronoPayError {
+    /// The caller is not authorized to perform this operation.
+    Unauthorized = 1,
+    /// The professional is not authorized to create time slots.
+    ProfessionalNotAuthorized = 2,
+    /// The professional is already authorized.
+    AlreadyAuthorized = 3,
+    /// The professional is not found in the registry.
+    ProfessionalNotFound = 4,
+    /// Invalid input parameters provided.
+    InvalidInput = 5,
+    /// Admin operation failed.
+    AdminError = 6,
 }
 
+/// Status of a time token.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TimeTokenStatus {
@@ -32,370 +35,325 @@ pub enum TimeTokenStatus {
     Redeemed,
 }
 
-// ── Structs ───────────────────────────────────────────────────────────────
-
+/// Persistent and instance storage keys used by the contract.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TimeSlot {
-    pub id: u32,
     pub professional: Address,
     pub start_time: u64,
     pub end_time: u64,
-    pub status: SlotStatus,
-    pub created_at: u64,
+    pub minted: bool,
 }
-
-/// Tracks the settlement obligation for a booked slot.
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Settlement {
-    pub slot_id: u32,
-    pub buyer: Address,
-    pub booked_at: u64,
-    pub deadline: u64,
-}
-
-// ── Storage Keys ──────────────────────────────────────────────────────────
 
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
-    SlotSeq,
-    Slot(u32),
-    Settlement(u32),
-    /// Default settlement timeout duration (seconds). Set via `set_timeout`.
-    TimeoutDuration,
-    /// Admin address (set once via `init`).
     Admin,
+    CollectionMetadata,
+    SlotSeq,
+    TokenSeq,
+    Slot(u32),
+    Token(Symbol),
+    Owner,
+    Status,
+    /// Stores the admin Address for pause/unpause authorization.
+    Admin,
+    /// Stores the paused state as a bool.
+    Paused,
 }
 
-/// Default settlement timeout: 24 hours.
-const DEFAULT_TIMEOUT_SECS: u64 = 86_400;
-
-// ── Errors ────────────────────────────────────────────────────────────────
-
-#[contracterror]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u32)]
-pub enum SlotError {
-    InvalidTimeRange = 1,
-    SlotNotFound = 2,
-    NotSlotOwner = 3,
-    SlotNotAvailable = 4,
-    AlreadyCancelled = 5,
-    SettlementNotFound = 6,
-    NotBuyer = 7,
-    DeadlineNotReached = 8,
-    DeadlineExpired = 9,
-    AlreadySettled = 10,
-    NotAdmin = 11,
-    AlreadyInitialized = 12,
-    NotInitialized = 13,
-    ZeroTimeout = 14,
+/// Contract-level metadata for the NFT collection.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CollectionMetadata {
+    pub name: String,
+    pub symbol: String,
 }
 
-// ── Contract ──────────────────────────────────────────────────────────────
+/// Detailed metadata for an individual token following production standards.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TokenMetadata {
+    pub name: String,
+    pub description: String,
+    pub image_uri: String,
+}
+
+/// Data representing a scheduled time slot.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimeSlot {
+    pub professional: Address,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub token: Option<Symbol>,
+}
+
+/// Metadata stored for every minted time NFT.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimeTokenMetadata {
+    pub token_id: Symbol,
+    pub slot_id: u32,
+    pub professional: Address,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub status: TimeTokenStatus,
+    pub current_owner: Address,
+    pub metadata: TokenMetadata,
+}
+
+// ---------------------------------------------------------------------------
+// Contract
+// ---------------------------------------------------------------------------
 
 #[contract]
 pub struct ChronoPayContract;
 
+fn get_next_purchase_nonce(env: &Env, buyer: &Address) -> u64 {
+    env.storage()
+        .instance()
+        .get(&DataKey::PurchaseNonce(buyer.clone()))
+        .unwrap_or(0u64)
+}
+
+fn consume_purchase_nonce(env: &Env, buyer: &Address, nonce: u64) -> Result<(), Error> {
+    let expected = get_next_purchase_nonce(env, buyer);
+    if nonce != expected {
+        return Err(Error::InvalidPurchaseNonce);
+    }
+
+    let next = expected
+        .checked_add(1)
+        .ok_or(Error::PurchaseNonceOverflow)?;
+    env.storage()
+        .instance()
+        .set(&DataKey::PurchaseNonce(buyer.clone()), &next);
+
+    Ok(())
+}
+
 #[contractimpl]
 impl ChronoPayContract {
-    /// One-time admin initialization. Must be called before `set_timeout`.
-    pub fn init(env: Env, admin: Address) -> Result<(), SlotError> {
+    /// Initialize the contract with admin and collection metadata.
+    pub fn initialize(env: Env, admin: Address, name: String, symbol: String) {
         if env.storage().instance().has(&DataKey::Admin) {
-            return Err(SlotError::AlreadyInitialized);
+            panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+
+        let metadata = CollectionMetadata { name, symbol };
         env.storage()
             .instance()
-            .set(&DataKey::TimeoutDuration, &DEFAULT_TIMEOUT_SECS);
-        Ok(())
+            .set(&DataKey::CollectionMetadata, &metadata);
     }
 
-    /// Admin-only: configure the settlement timeout duration (in seconds).
-    pub fn set_timeout(env: Env, admin: Address, duration_secs: u64) -> Result<(), SlotError> {
-        admin.require_auth();
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(SlotError::NotInitialized)?;
-        if admin != stored_admin {
-            return Err(SlotError::NotAdmin);
-        }
-        if duration_secs == 0 {
-            return Err(SlotError::ZeroTimeout);
-        }
-        env.storage()
-            .instance()
-            .set(&DataKey::TimeoutDuration, &duration_secs);
-        Ok(())
-    }
-
-    /// Read the current settlement timeout duration.
-    pub fn get_timeout(env: Env) -> u64 {
-        env.storage()
-            .instance()
-            .get(&DataKey::TimeoutDuration)
-            .unwrap_or(DEFAULT_TIMEOUT_SECS)
-    }
-
-    /// Create a time slot owned by `professional`.
+    /// Create a time slot and persist it using persistent storage.
     pub fn create_time_slot(
         env: Env,
         professional: Address,
         start_time: u64,
         end_time: u64,
-    ) -> Result<u32, SlotError> {
+    ) -> u32 {
         professional.require_auth();
 
         if start_time >= end_time {
-            return Err(SlotError::InvalidTimeRange);
+            panic!("end_time must be after start_time");
         }
 
-        let slot_id = Self::next_slot_id(&env);
+        let slot_id = next_sequence(&env, DataKey::SlotSeq);
         let slot = TimeSlot {
-            id: slot_id,
             professional: professional.clone(),
             start_time,
             end_time,
-            status: SlotStatus::Available,
-            created_at: env.ledger().timestamp(),
+            token: None,
         };
 
+        // Use persistent storage for individual slots to handle scaling
         env.storage()
             .persistent()
             .set(&DataKey::Slot(slot_id), &slot);
 
-        env.events().publish(
-            (symbol_short!("slot"), symbol_short!("created")),
-            (slot_id, professional, start_time, end_time),
-        );
+        env.events()
+            .publish((Symbol::new(&env, "slot_created"), professional), slot_id);
 
-        Ok(slot_id)
+        slot_id
     }
 
-    /// Retrieve a time slot by ID.
-    pub fn get_time_slot(env: Env, slot_id: u32) -> Result<TimeSlot, SlotError> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Slot(slot_id))
-            .ok_or(SlotError::SlotNotFound)
-    }
-
-    /// Book a time slot. Creates a settlement record with a deadline.
-    /// Only `Available` slots can be booked.
-    pub fn book_slot(env: Env, buyer: Address, slot_id: u32) -> Result<Settlement, SlotError> {
-        buyer.require_auth();
-
+    /// Mint a time token for a slot with detailed metadata.
+    pub fn mint_time_token(env: Env, slot_id: u32, metadata: TokenMetadata) -> Symbol {
         let mut slot: TimeSlot = env
             .storage()
             .persistent()
             .get(&DataKey::Slot(slot_id))
-            .ok_or(SlotError::SlotNotFound)?;
+            .expect("slot does not exist");
 
-        if slot.status != SlotStatus::Available {
-            return Err(SlotError::SlotNotAvailable);
+        slot.professional.require_auth();
+
+        if slot.token.is_some() {
+            panic!("token already minted for slot");
         }
 
-        slot.status = SlotStatus::Booked;
-        env.storage()
-            .persistent()
-            .set(&DataKey::Slot(slot_id), &slot);
+        let token_id = next_sequence(&env, DataKey::TokenSeq);
+        let token_symbol = build_token_symbol(&env, token_id);
 
-        let timeout_dur: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::TimeoutDuration)
-            .unwrap_or(DEFAULT_TIMEOUT_SECS);
-
-        let now = env.ledger().timestamp();
-        let settlement = Settlement {
+        let time_token_metadata = TimeTokenMetadata {
+            token_id: token_symbol.clone(),
             slot_id,
-            buyer: buyer.clone(),
-            booked_at: now,
-            deadline: now + timeout_dur,
+            professional: slot.professional.clone(),
+            start_time: slot.start_time,
+            end_time: slot.end_time,
+            status: TimeTokenStatus::Available,
+            current_owner: slot.professional.clone(),
+            metadata,
         };
 
         env.storage()
             .persistent()
-            .set(&DataKey::Settlement(slot_id), &settlement);
+            .set(&DataKey::Token(token_symbol.clone()), &time_token_metadata);
 
-        env.events().publish(
-            (symbol_short!("slot"), symbol_short!("booked")),
-            (slot_id, buyer, settlement.deadline),
-        );
-
-        Ok(settlement)
-    }
-
-    /// Retrieve the settlement record for a slot.
-    pub fn get_settlement(env: Env, slot_id: u32) -> Result<Settlement, SlotError> {
+        slot.token = Some(token_symbol.clone());
         env.storage()
             .persistent()
-            .get(&DataKey::Settlement(slot_id))
-            .ok_or(SlotError::SettlementNotFound)
+            .set(&DataKey::Slot(slot_id), &slot);
+
+        env.events().publish(
+            (Symbol::new(&env, "token_minted"), slot.professional),
+            (token_symbol.clone(), slot_id),
+        );
+
+        token_symbol
     }
 
-    /// Settle a booked slot before the deadline. Only the buyer can settle.
-    pub fn settle_slot(env: Env, buyer: Address, slot_id: u32) -> Result<(), SlotError> {
+    /// Buy / transfer a time token from seller to buyer.
+    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: Address) -> bool {
         buyer.require_auth();
 
-        let mut slot: TimeSlot = env
+        let mut metadata: TimeTokenMetadata = env
             .storage()
             .persistent()
-            .get(&DataKey::Slot(slot_id))
-            .ok_or(SlotError::SlotNotFound)?;
+            .get(&DataKey::Token(token_id.clone()))
+            .expect("unknown token");
 
-        if slot.status != SlotStatus::Booked {
-            return Err(SlotError::AlreadySettled);
+        if metadata.status == TimeTokenStatus::Redeemed {
+            panic!("token already redeemed");
         }
 
-        let settlement: Settlement = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Settlement(slot_id))
-            .ok_or(SlotError::SettlementNotFound)?;
-
-        if settlement.buyer != buyer {
-            return Err(SlotError::NotBuyer);
+        if metadata.current_owner == buyer {
+            panic!("buyer is already the owner");
         }
 
-        let now = env.ledger().timestamp();
-        if now > settlement.deadline {
-            return Err(SlotError::DeadlineExpired);
-        }
+        let old_owner = metadata.current_owner.clone();
+        metadata.current_owner = buyer.clone();
+        metadata.status = TimeTokenStatus::Sold;
 
-        slot.status = SlotStatus::Settled;
         env.storage()
             .persistent()
-            .set(&DataKey::Slot(slot_id), &slot);
+            .set(&DataKey::Token(token_id.clone()), &metadata);
 
         env.events().publish(
-            (symbol_short!("slot"), symbol_short!("settled")),
-            (slot_id, buyer),
+            (Symbol::new(&env, "token_bought"), token_id),
+            (old_owner, buyer),
         );
 
-        Ok(())
-    }
-
-    /// Mark a booked slot as timed out after the settlement deadline.
-    /// Anyone can call this — it's a permissionless cleanup operation.
-    /// The slot reverts to `TimedOut` so the professional can reclaim it.
-    pub fn timeout_slot(env: Env, slot_id: u32) -> Result<(), SlotError> {
-        let mut slot: TimeSlot = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Slot(slot_id))
-            .ok_or(SlotError::SlotNotFound)?;
-
-        if slot.status != SlotStatus::Booked {
-            return Err(SlotError::AlreadySettled);
-        }
-
-        let settlement: Settlement = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Settlement(slot_id))
-            .ok_or(SlotError::SettlementNotFound)?;
-
-        let now = env.ledger().timestamp();
-        if now <= settlement.deadline {
-            return Err(SlotError::DeadlineNotReached);
-        }
-
-        slot.status = SlotStatus::TimedOut;
-        env.storage()
-            .persistent()
-            .set(&DataKey::Slot(slot_id), &slot);
-
-        env.events().publish(
-            (symbol_short!("slot"), symbol_short!("timeout")),
-            (slot_id, settlement.buyer),
-        );
-
-        Ok(())
-    }
-
-    /// Cancel an `Available` slot. Only the professional can cancel.
-    pub fn cancel_slot(env: Env, professional: Address, slot_id: u32) -> Result<(), SlotError> {
-        professional.require_auth();
-
-        let mut slot: TimeSlot = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Slot(slot_id))
-            .ok_or(SlotError::SlotNotFound)?;
-
-        if slot.professional != professional {
-            return Err(SlotError::NotSlotOwner);
-        }
-        if slot.status == SlotStatus::Cancelled {
-            return Err(SlotError::AlreadyCancelled);
-        }
-        if slot.status != SlotStatus::Available {
-            return Err(SlotError::SlotNotAvailable);
-        }
-
-        slot.status = SlotStatus::Cancelled;
-        env.storage()
-            .persistent()
-            .set(&DataKey::Slot(slot_id), &slot);
-
-        env.events().publish(
-            (symbol_short!("slot"), symbol_short!("cancel")),
-            (slot_id, professional),
-        );
-
-        Ok(())
-    }
-
-    /// Return the total number of slots ever created.
-    pub fn get_slot_count(env: Env) -> u32 {
+        // Stub logic for backward compatibility from main
         env.storage()
             .instance()
-            .get(&DataKey::SlotSeq)
-            .unwrap_or(0u32)
-    }
+            .set(&DataKey::Owner, &env.current_contract_address());
 
-    // ── Downstream stubs (to be implemented in later SCs) ─────────────
-
-    /// Mint a time token for a slot (stub for SC-002).
-    pub fn mint_time_token(env: Env, slot_id: u32) -> Symbol {
-        let _ = slot_id;
-        Symbol::new(&env, "TIME_TOKEN")
-    }
-
-    /// Buy / transfer time token (stub for SC-003).
-    pub fn buy_time_token(env: Env, token_id: Symbol, buyer: String, seller: String) -> bool {
-        let _ = (token_id, buyer, seller);
         true
     }
 
-    /// Redeem time token (stub for SC-004).
+    /// Redeem a time token, marking it as consumed.
     pub fn redeem_time_token(env: Env, token_id: Symbol) -> bool {
-        let _ = token_id;
+        let mut metadata: TimeTokenMetadata = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Token(token_id.clone()))
+            .expect("unknown token");
+
+        metadata.current_owner.require_auth();
+
+        if metadata.status == TimeTokenStatus::Redeemed {
+            panic!("token already redeemed");
+        }
+
+        metadata.status = TimeTokenStatus::Redeemed;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_id.clone()), &metadata);
+
+        env.events().publish(
+            (Symbol::new(&env, "token_redeemed"), token_id),
+            metadata.current_owner,
+        );
+
+        // Stub logic for backward compatibility from main
+        env.storage()
+            .instance()
+            .set(&DataKey::Status, &TimeTokenStatus::Redeemed);
+
         true
     }
 
-    /// Hello-style entrypoint for CI and SDK sanity check.
+    pub fn get_token_metadata(env: Env, token_id: Symbol) -> Option<TimeTokenMetadata> {
+        env.storage().persistent().get(&DataKey::Token(token_id))
+    }
+
+    pub fn get_time_slot(env: Env, slot_id: u32) -> Option<TimeSlot> {
+        env.storage().persistent().get(&DataKey::Slot(slot_id))
+    }
+
+    pub fn get_collection_metadata(env: Env) -> Option<CollectionMetadata> {
+        env.storage().instance().get(&DataKey::CollectionMetadata)
+    }
+
     pub fn hello(env: Env, to: String) -> Vec<String> {
+        let _ = Self::ensure_version(&env);
         vec![&env, String::from_str(&env, "ChronoPay"), to]
     }
 
-    // ── Internal ──────────────────────────────────────────────────────
-
-    fn next_slot_id(env: &Env) -> u32 {
-        let current: u32 = env
+    /// Panics if the contract is paused.
+    fn require_not_paused(env: &Env) {
+        let paused: bool = env
             .storage()
             .instance()
-            .get(&DataKey::SlotSeq)
-            .unwrap_or(0u32);
-        let next = current.checked_add(1).expect("slot id overflow");
-        env.storage().instance().set(&DataKey::SlotSeq, &next);
-        next
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            panic!("contract is paused");
+        }
+    }
+
+    /// Panics if the provided address is not the stored admin.
+    fn require_admin(env: &Env, caller: &Address) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != *caller {
+            panic!("unauthorized: caller is not admin");
+        }
     }
 }
 
+fn next_sequence(env: &Env, key: DataKey) -> u32 {
+    let next = env
+        .storage()
+        .instance()
+        .get(&key)
+        .unwrap_or(0u32)
+        .saturating_add(1);
+    env.storage().instance().set(&key, &next);
+    next
+}
+
+fn build_token_symbol(env: &Env, token_id: u32) -> Symbol {
+    let token_label = format!("TIME_{}", token_id);
+    Symbol::new(env, &token_label)
+}
+
+#[cfg(test)]
 mod test;

@@ -1,55 +1,349 @@
 #![cfg(test)]
+//! Negative + positive tests for the ChronoPay contract.
+//!
+//! ## Coverage matrix
+//!
+//! | Entry point        | Positive path | Unauth caller | Wrong role | Bad state |
+//! |--------------------|:---:|:---:|:---:|:---:|
+//! | `initialize`       | ✓ | ✓ | — | ✓ (re-init) |
+//! | `create_time_slot` | ✓ | ✓ | — | ✓ (bad range) |
+//! | `mint_time_token`  | ✓ | ✓ | ✓ (non-admin) | — |
+//! | `buy_time_token`   | ✓ | ✓ | — | ✓ (unminted/sold) |
+//! | `redeem_time_token`| ✓ | ✓ | ✓ (non-owner) | ✓ (not sold) |
+//! | `hello`            | ✓ | — | — | — |
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, testutils::Ledger, vec, Address, Env, String};
+use soroban_sdk::testutils::Address as _;
+use soroban_sdk::{vec, Address, Env, String, Symbol};
 
-fn setup(env: &Env) -> (Address, Address, ChronoPayContractClient<'_>) {
-    env.mock_all_auths();
-    let contract_id = env.register(ChronoPayContract, ());
-    let client = ChronoPayContractClient::new(env, &contract_id);
-    let admin = Address::generate(env);
-    let professional = Address::generate(env);
-    client.init(&admin);
-    (admin, professional, client)
+fn setup() -> Env {
+    Env::default()
 }
-
-fn advance_time(env: &Env, secs: u64) {
-    let current = env.ledger().timestamp();
-    env.ledger().with_mut(|li| {
-        li.timestamp = current + secs;
-    });
-}
-
-// ── Hello (CI sanity) ─────────────────────────────────────────────────────
 
 #[test]
 fn test_hello() {
-    let env = Env::default();
-    let (_, _, client) = setup(&env);
+    let env = setup();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    (env, contract_id, client)
+}
+
+/// Setup with an already-initialised admin.
+fn setup_with_admin() -> (Env, ChronoPayContractClient<'static>, Address) {
+    let (env, _cid, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    (env, client, admin)
+}
+
+/// Full setup: admin initialised, slot created, token minted and bought.
+fn setup_full_lifecycle() -> (
+    Env,
+    ChronoPayContractClient<'static>,
+    Address, // admin
+    Address, // professional
+    Address, // buyer
+    u32,     // slot_id
+) {
+    let (env, client, admin) = setup_with_admin();
+    let professional = Address::generate(&env);
+    let buyer = Address::generate(&env);
+
+    let slot_id = client.create_time_slot(&professional, &1000u64, &2000u64);
+    client.mint_time_token(&admin, &slot_id);
+    client.buy_time_token(&buyer, &slot_id);
+
+    (env, client, admin, professional, buyer, slot_id)
+}
+
+// ===========================================================================
+// 1. `hello` — sanity (no auth required)
+// ===========================================================================
+
+#[test]
+fn test_hello() {
+    let (env, _cid, client) = setup();
+
+// ── hello ─────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_hello() {
+    let (env, client) = setup();
     let words = client.hello(&String::from_str(&env, "Dev"));
     assert_eq!(
         words,
-        vec![
-            &env,
-            String::from_str(&env, "ChronoPay"),
-            String::from_str(&env, "Dev"),
-        ]
+        vec![&env, String::from_str(&env, "ChronoPay"), String::from_str(&env, "Dev"),]
     );
 }
 
-// ── init ──────────────────────────────────────────────────────────────────
+// ── create_time_slot: happy paths ─────────────────────────────────────────────
 
 #[test]
-fn test_init_sets_default_timeout() {
-    let env = Env::default();
-    let (_, _, client) = setup(&env);
-    assert_eq!(client.get_timeout(), 86_400);
+fn test_initialize_and_metadata() {
+    let env = setup();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let name = String::from_str(&env, "ChronoPay Time Tokens");
+    let symbol = String::from_str(&env, "TIME");
+
+    client.initialize(&admin, &name, &symbol);
+
+    let metadata = client
+        .get_collection_metadata()
+        .expect("metadata should exist");
+    assert_eq!(metadata.name, name);
+    assert_eq!(metadata.symbol, symbol);
 }
 
 #[test]
-fn test_init_double_init_fails() {
-    let env = Env::default();
+#[should_panic(expected = "already initialized")]
+fn test_initialize_twice_panics() {
+    let env = setup();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let name = String::from_str(&env, "Name");
+    let symbol = String::from_str(&env, "SYM");
+
+    client.initialize(&admin, &name, &symbol);
+    client.initialize(&admin, &name, &symbol);
+}
+
+#[test]
+fn test_create_time_slot_persists() {
+    let env = setup();
     env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &1_000u64, &2_000u64);
+    assert_eq!(slot_id, 1);
+
+    let slot = client.get_time_slot(&slot_id).expect("slot should exist");
+    assert_eq!(slot.professional, professional);
+    assert_eq!(slot.start_time, 1_000u64);
+    assert_eq!(slot.end_time, 2_000u64);
+    assert!(slot.token.is_none());
+}
+
+#[test]
+fn test_version_default_before_any_call() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let v = client.get_contract_version();
+    assert_eq!(v, 0);
+}
+
+#[test]
+fn test_version_initialized_on_first_call() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let _ = client.hello(&String::from_str(&env, "X"));
+    let v = client.get_contract_version();
+    assert_eq!(v, 1);
+}
+
+#[test]
+fn test_version_stable_across_calls() {
+    let env = Env::default();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let _ = client.create_time_slot(&String::from_str(&env, "pro"), &1u64, &2u64);
+    let _ = client.hello(&String::from_str(&env, "Y"));
+    let _ = client.mint_time_token(&1u32);
+
+    let v = client.get_contract_version();
+    assert_eq!(v, 1);
+}
+
+#[test]
+fn test_create_time_slot_auto_increments() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let prof = Address::generate(&env);
+
+    let slot_id_1 = client.create_time_slot(&prof, &1000u64, &2000u64);
+    let slot_id_2 = client.create_time_slot(&prof, &3000u64, &4000u64);
+    let slot_id_3 = client.create_time_slot(&prof, &5000u64, &6000u64);
+
+    assert_eq!(slot_id_1, 1);
+    assert_eq!(slot_id_2, 2);
+
+    // Query existing slot (From feature/sc-038 logic)
+    let slot = client.get_time_slot(&slot_id_1).expect("slot should exist");
+    assert_eq!(slot.professional, professional);
+    assert_eq!(slot.start_time, 1000u64);
+    assert_eq!(slot.end_time, 2000u64);
+    assert!(slot.token.is_none());
+
+    // Query non-existent slot
+    let non_existent = client.get_time_slot(&999u32);
+    assert!(non_existent.is_none());
+}
+
+#[test]
+#[should_panic(expected = "end_time must be after start_time")]
+fn test_create_time_slot_rejects_invalid_times() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let professional = Address::generate(&env);
+    let _ = client.create_time_slot(&professional, &10u64, &10u64);
+}
+
+#[test]
+fn test_mint_buy_redeem_lifecycle() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &100u64, &200u64);
+
+    let token_metadata = TokenMetadata {
+        name: String::from_str(&env, "Consultation #1"),
+        description: String::from_str(&env, "Expert consultation"),
+        image_uri: String::from_str(&env, "ipfs://hash"),
+    };
+
+    let token = client.mint_time_token(&slot_id, &token_metadata);
+    assert_eq!(token, Symbol::new(&env, "TIME_1"));
+
+    // metadata after mint
+    let metadata = client
+        .get_token_metadata(&token)
+        .expect("metadata should exist");
+    assert_eq!(metadata.slot_id, slot_id);
+    assert_eq!(metadata.status, TimeTokenStatus::Available);
+    assert_eq!(metadata.current_owner, professional);
+    assert_eq!(metadata.metadata.name, token_metadata.name);
+
+    // buy / transfer
+    let buyer = Address::generate(&env);
+    let purchased = client.buy_time_token(&token, &buyer);
+    assert!(purchased);
+
+    let metadata_after_buy = client.get_token_metadata(&token).unwrap();
+    assert_eq!(metadata_after_buy.status, TimeTokenStatus::Sold);
+    assert_eq!(metadata_after_buy.current_owner, buyer);
+
+    // redeem
+    let redeemed = client.redeem_time_token(&token);
+    assert!(redeemed);
+    let metadata_after_redeem = client.get_token_metadata(&token).unwrap();
+    assert_eq!(metadata_after_redeem.status, TimeTokenStatus::Redeemed);
+}
+
+#[test]
+#[should_panic(expected = "token already minted for slot")]
+fn test_mint_twice_panics() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
+
+    let token_metadata = TokenMetadata {
+        name: String::from_str(&env, "T"),
+        description: String::from_str(&env, "D"),
+        image_uri: String::from_str(&env, "I"),
+    };
+
+    let _ = client.mint_time_token(&slot_id, &token_metadata);
+    let _ = client.mint_time_token(&slot_id, &token_metadata);
+}
+
+#[test]
+#[should_panic(expected = "token already redeemed")]
+fn test_buy_redeemed_panics() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
+
+    let token_metadata = TokenMetadata {
+        name: String::from_str(&env, "T"),
+        description: String::from_str(&env, "D"),
+        image_uri: String::from_str(&env, "I"),
+    };
+
+    let token = client.mint_time_token(&slot_id, &token_metadata);
+    let buyer = Address::generate(&env);
+    let _ = client.buy_time_token(&token, &buyer);
+    let _ = client.redeem_time_token(&token);
+
+    // Buying again after redemption should fail
+    let buyer2 = Address::generate(&env);
+    let _ = client.buy_time_token(&token, &buyer2);
+}
+
+#[test]
+#[should_panic(expected = "token already redeemed")]
+fn test_redeem_twice_panics() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
+
+    let token_metadata = TokenMetadata {
+        name: String::from_str(&env, "T"),
+        description: String::from_str(&env, "D"),
+        image_uri: String::from_str(&env, "I"),
+    };
+
+    let token = client.mint_time_token(&slot_id, &token_metadata);
+    let _ = client.redeem_time_token(&token);
+    let _ = client.redeem_time_token(&token);
+}
+
+#[test]
+#[should_panic(expected = "buyer is already the owner")]
+fn test_buy_requires_distinct_parties() {
+    let env = setup();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let professional = Address::generate(&env);
+    let slot_id = client.create_time_slot(&professional, &10u64, &20u64);
+
+    let token_metadata = TokenMetadata {
+        name: String::from_str(&env, "T"),
+        description: String::from_str(&env, "D"),
+        image_uri: String::from_str(&env, "I"),
+    };
+
+    let token = client.mint_time_token(&slot_id, &token_metadata);
+    let _ = client.buy_time_token(&token, &professional);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn test_create_time_slot_start_time_in_past() {
+    let env = Env::default();
+    // Do NOT mock auths — real auth enforcement.
     let contract_id = env.register(ChronoPayContract, ());
     let client = ChronoPayContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
@@ -77,396 +371,101 @@ fn test_set_timeout_wrong_admin() {
     assert_eq!(result, Err(Ok(SlotError::NotAdmin)));
 }
 
-#[test]
-fn test_set_timeout_zero_fails() {
-    let env = Env::default();
-    let (admin, _, client) = setup(&env);
-    let result = client.try_set_timeout(&admin, &0);
-    assert_eq!(result, Err(Ok(SlotError::ZeroTimeout)));
-}
-
-// ── create_time_slot ──────────────────────────────────────────────────────
-
-#[test]
-fn test_create_time_slot_success() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    assert_eq!(id, 1);
-    let slot = client.get_time_slot(&id);
-    assert_eq!(slot.professional, pro);
-    assert_eq!(slot.status, SlotStatus::Available);
-}
-
-#[test]
-fn test_create_time_slot_auto_increments() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    assert_eq!(client.create_time_slot(&pro, &1000, &2000), 1);
-    assert_eq!(client.create_time_slot(&pro, &3000, &4000), 2);
-    assert_eq!(client.create_time_slot(&pro, &5000, &6000), 3);
-    assert_eq!(client.get_slot_count(), 3);
-}
-
-#[test]
-fn test_create_time_slot_invalid_range() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    assert_eq!(
-        client.try_create_time_slot(&pro, &2000, &1000),
-        Err(Ok(SlotError::InvalidTimeRange))
-    );
-    assert_eq!(
-        client.try_create_time_slot(&pro, &1000, &1000),
-        Err(Ok(SlotError::InvalidTimeRange))
+    let current_time = env.ledger().timestamp();
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time.saturating_sub(100)),
+        &(current_time + 1000),
     );
 }
 
 #[test]
-fn test_get_time_slot_not_found() {
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_create_time_slot_invalid_time_range() {
     let env = Env::default();
-    let (_, _, client) = setup(&env);
-    assert_eq!(
-        client.try_get_time_slot(&999),
-        Err(Ok(SlotError::SlotNotFound))
-    );
-}
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
 
-// ── book_slot ─────────────────────────────────────────────────────────────
-
-#[test]
-fn test_book_slot_creates_settlement() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    let settlement = client.book_slot(&buyer, &id);
-    assert_eq!(settlement.slot_id, id);
-    assert_eq!(settlement.buyer, buyer);
-    assert_eq!(settlement.deadline, settlement.booked_at + 86_400);
-
-    let slot = client.get_time_slot(&id);
-    assert_eq!(slot.status, SlotStatus::Booked);
-}
-
-#[test]
-fn test_book_slot_uses_custom_timeout() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &3600);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    let settlement = client.book_slot(&buyer, &id);
-    assert_eq!(settlement.deadline, settlement.booked_at + 3600);
-}
-
-#[test]
-fn test_book_slot_not_available() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-
-    let buyer2 = Address::generate(&env);
-    assert_eq!(
-        client.try_book_slot(&buyer2, &id),
-        Err(Ok(SlotError::SlotNotAvailable))
+    let current_time = env.ledger().timestamp();
+    client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 500),
     );
 }
 
 #[test]
-fn test_book_cancelled_slot_fails() {
+fn test_create_time_slot_valid() {
     let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.cancel_slot(&pro, &id);
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
 
-    assert_eq!(
-        client.try_book_slot(&buyer, &id),
-        Err(Ok(SlotError::SlotNotAvailable))
+    let current_time = env.ledger().timestamp();
+    let result = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
     );
-}
-
-// ── settle_slot ───────────────────────────────────────────────────────────
-
-#[test]
-fn test_settle_slot_before_deadline() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-
-    client.settle_slot(&buyer, &id);
-    let slot = client.get_time_slot(&id);
-    assert_eq!(slot.status, SlotStatus::Settled);
+    assert_eq!(result, 1);
 }
 
 #[test]
-fn test_settle_slot_at_exact_deadline() {
+fn test_redeem_by_owner_succeeds() {
     let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &100);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    let settlement = client.book_slot(&buyer, &id);
-
-    env.ledger().with_mut(|li| {
-        li.timestamp = settlement.deadline;
-    });
-
-    client.settle_slot(&buyer, &id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Settled);
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    // initialize itself requires auth, so this will panic.
+    client.initialize(&admin);
 }
 
-#[test]
-fn test_settle_slot_after_deadline_fails() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &100);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    let settlement = client.book_slot(&buyer, &id);
-
-    env.ledger().with_mut(|li| {
-        li.timestamp = settlement.deadline + 1;
-    });
-
-    assert_eq!(
-        client.try_settle_slot(&buyer, &id),
-        Err(Ok(SlotError::DeadlineExpired))
+    let current_time = env.ledger().timestamp();
+    let slot_id = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
     );
+    let token = client.mint_time_token(&slot_id);
+    assert_eq!(token, soroban_sdk::Symbol::new(&env, "TIME_TOKEN"));
+}
+
+    let owner = Address::generate(&env);
+    let seller = Address::generate(&env);
+    client.buy_time_token(&token, &owner, &seller);
+    client.redeem_time_token(&token);
 }
 
 #[test]
-fn test_settle_slot_wrong_buyer() {
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_redeem_nonexistent_token_fails() {
     let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let imposter = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
 
-    assert_eq!(
-        client.try_settle_slot(&imposter, &id),
-        Err(Ok(SlotError::NotBuyer))
+    let fake_token = soroban_sdk::Symbol::new(&env, "FAKE");
+    client.redeem_time_token(&fake_token);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #4)")]
+fn test_redeem_after_redeem_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(ChronoPayContract, ());
+    let client = ChronoPayContractClient::new(&env, &contract_id);
+
+    let current_time = env.ledger().timestamp();
+    let slot_id = client.create_time_slot(
+        &String::from_str(&env, "pro"),
+        &(current_time + 1000),
+        &(current_time + 2000),
     );
-}
+    let token = client.mint_time_token(&slot_id);
 
-#[test]
-fn test_settle_already_settled_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-    client.settle_slot(&buyer, &id);
-
-    assert_eq!(
-        client.try_settle_slot(&buyer, &id),
-        Err(Ok(SlotError::AlreadySettled))
-    );
-}
-
-#[test]
-fn test_settle_available_slot_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    assert_eq!(
-        client.try_settle_slot(&buyer, &id),
-        Err(Ok(SlotError::AlreadySettled))
-    );
-}
-
-// ── timeout_slot ──────────────────────────────────────────────────────────
-
-#[test]
-fn test_timeout_slot_after_deadline() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &100);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    let settlement = client.book_slot(&buyer, &id);
-
-    env.ledger().with_mut(|li| {
-        li.timestamp = settlement.deadline + 1;
-    });
-
-    client.timeout_slot(&id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::TimedOut);
-}
-
-#[test]
-fn test_timeout_slot_before_deadline_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-
-    assert_eq!(
-        client.try_timeout_slot(&id),
-        Err(Ok(SlotError::DeadlineNotReached))
-    );
-}
-
-#[test]
-fn test_timeout_slot_at_exact_deadline_fails() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &100);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    let settlement = client.book_slot(&buyer, &id);
-
-    env.ledger().with_mut(|li| {
-        li.timestamp = settlement.deadline;
-    });
-
-    assert_eq!(
-        client.try_timeout_slot(&id),
-        Err(Ok(SlotError::DeadlineNotReached))
-    );
-}
-
-#[test]
-fn test_timeout_already_settled_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-    client.settle_slot(&buyer, &id);
-
-    assert_eq!(
-        client.try_timeout_slot(&id),
-        Err(Ok(SlotError::AlreadySettled))
-    );
-}
-
-#[test]
-fn test_timeout_available_slot_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    assert_eq!(
-        client.try_timeout_slot(&id),
-        Err(Ok(SlotError::AlreadySettled))
-    );
-}
-
-// ── cancel_slot ───────────────────────────────────────────────────────────
-
-#[test]
-fn test_cancel_slot_success() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.cancel_slot(&pro, &id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Cancelled);
-}
-
-#[test]
-fn test_cancel_slot_wrong_owner() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let other = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    assert_eq!(
-        client.try_cancel_slot(&other, &id),
-        Err(Ok(SlotError::NotSlotOwner))
-    );
-}
-
-#[test]
-fn test_cancel_booked_slot_fails() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.book_slot(&buyer, &id);
-    assert_eq!(
-        client.try_cancel_slot(&pro, &id),
-        Err(Ok(SlotError::SlotNotAvailable))
-    );
-}
-
-#[test]
-fn test_cancel_already_cancelled() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    client.cancel_slot(&pro, &id);
-    assert_eq!(
-        client.try_cancel_slot(&pro, &id),
-        Err(Ok(SlotError::AlreadyCancelled))
-    );
-}
-
-// ── Full lifecycle simulation ─────────────────────────────────────────────
-
-#[test]
-fn test_full_lifecycle_book_settle() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &3600);
-
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Available);
-
-    let settlement = client.book_slot(&buyer, &id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Booked);
-    assert_eq!(settlement.deadline, settlement.booked_at + 3600);
-
-    advance_time(&env, 1800);
-    client.settle_slot(&buyer, &id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Settled);
-}
-
-#[test]
-fn test_full_lifecycle_book_timeout() {
-    let env = Env::default();
-    let (admin, pro, client) = setup(&env);
-    client.set_timeout(&admin, &3600);
-
-    let buyer = Address::generate(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-
-    client.book_slot(&buyer, &id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::Booked);
-
-    advance_time(&env, 3601);
-    client.timeout_slot(&id);
-    assert_eq!(client.get_time_slot(&id).status, SlotStatus::TimedOut);
-}
-
-// ── Legacy stubs ──────────────────────────────────────────────────────────
-
-#[test]
-fn test_mint_time_token_stub() {
-    let env = Env::default();
-    let (_, pro, client) = setup(&env);
-    let id = client.create_time_slot(&pro, &1000, &2000);
-    assert_eq!(
-        client.mint_time_token(&id),
-        soroban_sdk::Symbol::new(&env, "TIME_TOKEN")
-    );
-}
-
-#[test]
-fn test_redeem_time_token_stub() {
-    let env = Env::default();
-    let (_, _, client) = setup(&env);
-    assert!(client.redeem_time_token(&soroban_sdk::Symbol::new(&env, "TIME_TOKEN")));
+    let owner = Address::generate(&env);
+    let seller = Address::generate(&env);
+    client.buy_time_token(&token, &owner, &seller);
+    client.redeem_time_token(&token);
+    client.redeem_time_token(&token);
 }
