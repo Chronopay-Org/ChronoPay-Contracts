@@ -32,26 +32,7 @@
       ]
     ],
     [],
-    [],
-    [
-      [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
-        {
-          "function": {
-            "contract_fn": {
-              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
-              "function_name": "redeem_time_token",
-              "args": [
-                {
-                  "symbol": "TIME_TOKEN"
-                }
-              ]
-            }
-          },
-          "sub_invocations": []
-        }
-      ]
-    ]
+    []
   ],
   "ledger": {
     "protocol_version": 25,
@@ -140,83 +121,12 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "Owner"
-                          },
-                          {
-                            "symbol": "TIME_TOKEN"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
                             "symbol": "SlotSeq"
                           }
                         ]
                       },
                       "val": {
                         "u32": 1
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "Status"
-                          }
-                        ]
-                      },
-                      "val": {
-                        "vec": [
-                          {
-                            "symbol": "Redeemed"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "key": {
-                        "vec": [
-                          {
-                            "symbol": "TimeSlot"
-                          },
-                          {
-                            "u32": 1
-                          }
-                        ]
-                      },
-                      "val": {
-                        "map": [
-                          {
-                            "key": {
-                              "symbol": "end_time"
-                            },
-                            "val": {
-                              "u64": "2000"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "professional"
-                            },
-                            "val": {
-                              "string": "pro"
-                            }
-                          },
-                          {
-                            "key": {
-                              "symbol": "start_time"
-                            },
-                            "val": {
-                              "u64": "1000"
-                            }
-                          }
-                        ]
                       }
                     }
                   ]
